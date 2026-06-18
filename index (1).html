@@ -1,0 +1,1690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Drinking Olympics</title>
+<style>
+  :root {
+    --ink: #0B2545;
+    --ink-deep: #061830;
+    --parchment: #F4F8FB;
+    --gold: #C8222C;
+    --gold-light: #E5454E;
+    --red: #C8222C;
+    --red-light: #e5454e;
+    --olive: #3E7CB1;
+    --olive-light: #5C9BCB;
+    --line: rgba(11,37,69,0.16);
+    --paper: #FFFFFF;
+    --snow: #E8EEF3;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background:
+      radial-gradient(ellipse at 20% 0%, rgba(62,124,177,0.35), transparent 50%),
+      radial-gradient(ellipse at 80% 10%, rgba(200,34,44,0.18), transparent 45%),
+      var(--ink-deep);
+    color: var(--parchment);
+    font-family: 'Arial Narrow', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  .snowfall {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 0;
+  }
+  .snowfall span {
+    position: absolute;
+    top: -10px;
+    color: rgba(244,248,251,0.55);
+    font-size: 14px;
+    animation: snow-fall linear infinite;
+    will-change: transform;
+  }
+  @keyframes snow-fall {
+    to { transform: translateY(110vh) translateX(var(--drift, 0px)); }
+  }
+
+  .app {
+    position: relative;
+    z-index: 1;
+  }
+
+  @keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  .confetti-piece {
+    position: fixed;
+    top: -10px;
+    width: 8px;
+    height: 14px;
+    z-index: 1000;
+    pointer-events: none;
+    animation: confetti-fall ease-in forwards;
+  }
+  @keyframes confetti-fall {
+    to { transform: translateY(100vh) rotate(var(--spin, 360deg)); opacity: 0.4; }
+  }
+
+  @font-face {
+    font-family: 'Inter';
+    src: local('Inter');
+  }
+
+  .display {
+    font-family: 'Arial Black', 'Helvetica Neue', Impact, sans-serif;
+    font-weight: 900;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+  }
+
+  .app {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 32px 20px 80px;
+    min-height: 100vh;
+  }
+
+  /* ---------- Toast ---------- */
+  .toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(0);
+    background: var(--ink);
+    color: var(--parchment);
+    border: 1px solid var(--olive-light);
+    padding: 12px 20px;
+    border-radius: 6px;
+    font-size: 13.5px;
+    font-weight: 700;
+    z-index: 999;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.35);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    max-width: 90vw;
+    text-align: center;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-6px);
+  }
+  .toast.error { border-color: var(--red-light); }
+  .toast .tick { color: var(--olive-light); font-weight: 900; }
+
+  /* ---------- Header / banner bar ---------- */
+  .torch-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin-bottom: 22px;
+  }
+  .torch-bar .ring {
+    width: 16px; height: 16px;
+    color: var(--olive-light);
+    opacity: 0.9;
+    animation: spin-slow 12s linear infinite;
+  }
+  .torch-bar .ring svg { width: 100%; height: 100%; }
+
+  .eyebrow {
+    text-align: center;
+    font-size: 12px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--olive-light);
+    margin-bottom: 8px;
+    font-weight: 800;
+  }
+
+  h1.event-title {
+    text-align: center;
+    font-size: clamp(34px, 8vw, 58px);
+    margin: 0 0 8px;
+    line-height: 1.0;
+    color: var(--parchment);
+    text-shadow: 0 0 24px rgba(200,34,44,0.35), 0 2px 0 rgba(0,0,0,0.3);
+  }
+
+  .event-sub {
+    text-align: center;
+    color: rgba(244,248,251,0.65);
+    font-size: 14px;
+    margin-bottom: 36px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .header-rule {
+    height: 3px;
+    background: linear-gradient(90deg, transparent, var(--gold) 20%, var(--parchment) 50%, var(--olive-light) 80%, transparent);
+    margin: 0 auto 28px;
+    max-width: 320px;
+    border-radius: 2px;
+  }
+
+  /* ---------- Cards / panels ---------- */
+  @keyframes panel-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .panel {
+    background: var(--paper);
+    color: var(--ink);
+    border-radius: 8px;
+    padding: 28px 24px;
+    margin-bottom: 18px;
+    border: 1px solid rgba(11,37,69,0.08);
+    border-top: 4px solid var(--olive);
+    box-shadow: 0 4px 18px rgba(0,0,0,0.18);
+    animation: panel-in 0.32s ease both;
+  }
+
+  .panel h2 {
+    font-family: 'Arial Black', 'Helvetica Neue', sans-serif;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+    font-size: 20px;
+    margin: 0 0 4px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--ink);
+  }
+
+  .panel .desc {
+    font-size: 13.5px;
+    color: rgba(11,37,69,0.6);
+    margin-bottom: 20px;
+  }
+
+  .medal-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--ink);
+    color: var(--parchment);
+    font-size: 12px;
+    font-weight: 900;
+    font-family: 'Inter', sans-serif;
+    border: 2px solid var(--gold);
+  }
+
+  /* ---------- Buttons ---------- */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px 22px;
+    border-radius: 4px;
+    border: none;
+    font-size: 14px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+    font-family: 'Inter', sans-serif;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn-gold { background: var(--gold); color: var(--ink); }
+  .btn-gold:hover { background: var(--gold-light); }
+  .btn-outline { background: transparent; border: 1.5px solid var(--ink); color: var(--ink); }
+  .btn-outline:hover { background: rgba(11,37,69,0.05); }
+  .btn-ghost { background: transparent; color: rgba(244,248,251,0.7); border: 1px solid rgba(244,248,251,0.25); }
+  .btn-ghost:hover { color: var(--parchment); border-color: rgba(244,248,251,0.5); }
+  .btn-full { width: 100%; }
+  .btn-sm { padding: 8px 14px; font-size: 13px; }
+  .btn-red { background: var(--red); color: var(--parchment); }
+  .btn-red:hover { background: var(--red-light); }
+  .btn-olive { background: var(--olive); color: var(--parchment); }
+  .btn-olive:hover { background: var(--olive-light); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  /* ---------- Landing ---------- */
+  .landing-choices {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 36px;
+  }
+  .choice-card {
+    background: var(--paper);
+    color: var(--ink);
+    border-radius: 4px;
+    padding: 22px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+    text-align: left;
+  }
+  .choice-card:hover { border-color: var(--gold); transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.25); }
+  .choice-card:active { transform: translateY(-1px) scale(0.99); }
+  .choice-card .label {
+    font-family: 'Arial Black', 'Helvetica Neue', sans-serif;
+    font-weight: 900;
+    text-transform: uppercase;
+    font-size: 19px;
+    margin-bottom: 4px;
+    color: var(--ink);
+  }
+  .choice-card .sub { font-size: 13px; color: rgba(11,37,69,0.55); }
+
+  /* ---------- Roster list ---------- */
+  .roster-list { list-style: none; padding: 0; margin: 0; }
+  .roster-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 13px 4px;
+    border-bottom: 1px solid var(--line);
+    cursor: pointer;
+    transition: background 0.1s ease;
+  }
+  .roster-row:last-child { border-bottom: none; }
+  .roster-row:hover { background: rgba(74,93,58,0.06); }
+  .roster-name { font-size: 15.5px; font-weight: 500; }
+  .roster-arrow { color: rgba(11,37,69,0.35); font-size: 13px; }
+
+  /* status badges */
+  .status-tag {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 4px 9px;
+    border-radius: 20px;
+  }
+  .status-going { background: rgba(74,93,58,0.15); color: var(--olive); }
+  .status-notgoing { background: rgba(139,46,46,0.12); color: var(--red); }
+  .status-pending { background: rgba(11,37,69,0.08); color: rgba(11,37,69,0.45); }
+
+  /* ---------- Preference grid ---------- */
+  .pref-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+  .pref-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 1.5px solid var(--line);
+    background: #fff;
+    transition: all 0.12s ease;
+  }
+  .pref-row.going { border-color: rgba(74,93,58,0.35); background: rgba(74,93,58,0.06); }
+  .pref-row.notgoing { border-color: rgba(139,46,46,0.25); background: rgba(139,46,46,0.05); }
+  .pref-row.pending { border-color: var(--line); }
+  .pref-row.selected { border-color: var(--gold); background: rgba(201,162,39,0.14); box-shadow: 0 0 0 1px var(--gold); }
+  .pref-row .pname { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .dot.going { background: var(--olive); }
+  .dot.notgoing { background: var(--red); }
+  .dot.pending { background: rgba(11,37,69,0.25); }
+  .pref-row .pick-mark { font-size: 12px; color: var(--gold); font-weight: 700; }
+
+  /* ---------- RSVP toggle ---------- */
+  .rsvp-toggle { display: flex; gap: 10px; margin-top: 6px; }
+  .rsvp-opt {
+    flex: 1;
+    padding: 18px;
+    border-radius: 4px;
+    border: 2px solid var(--line);
+    text-align: center;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 0.03em;
+    transition: all 0.12s ease;
+    background: #fff;
+  }
+  .rsvp-opt.active.going { border-color: var(--olive); background: rgba(74,93,58,0.1); color: var(--olive); }
+  .rsvp-opt.active.notgoing { border-color: var(--red); background: rgba(139,46,46,0.08); color: var(--red); }
+
+  .lock-note {
+    font-size: 12.5px;
+    color: rgba(11,37,69,0.5);
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .banner-locked {
+    background: rgba(139,46,46,0.08);
+    border: 1px solid rgba(139,46,46,0.25);
+    color: var(--red);
+    padding: 12px 16px;
+    border-radius: 4px;
+    font-size: 13px;
+    margin-bottom: 16px;
+    font-weight: 600;
+  }
+
+  /* ---------- Inputs ---------- */
+  input[type=text], input[type=date], input[type=time], input[type=number], input[type=password], textarea {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 3px;
+    border: 1.5px solid var(--line);
+    font-size: 16px;
+    font-family: 'Inter', sans-serif;
+    background: #fff;
+    color: var(--ink);
+    min-width: 0;
+  }
+  textarea {
+    resize: vertical;
+    min-height: 120px;
+    line-height: 1.5;
+  }
+  input:focus, textarea:focus { outline: 2px solid var(--gold); outline-offset: 1px; }
+  label.field-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: rgba(11,37,69,0.55);
+    margin-bottom: 6px;
+  }
+  .field { margin-bottom: 16px; }
+
+  .back-link {
+    background: none; border: none; color: rgba(244,248,251,0.6);
+    font-size: 13px; cursor: pointer; margin-bottom: 18px;
+    display: flex; align-items: center; gap: 6px; padding: 0;
+    font-family: 'Inter', sans-serif;
+  }
+  .back-link:hover { color: var(--parchment); }
+
+  /* ---------- Admin table ---------- */
+  .admin-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 0; border-bottom: 1px solid var(--line);
+    flex-wrap: wrap;
+  }
+  .admin-row:last-child { border-bottom: none; }
+  .admin-row .who { flex: 1 1 140px; min-width: 0; }
+  .admin-row .who .nm { font-weight: 600; font-size: 14.5px; word-break: break-word; }
+  .admin-row .who .pref-note { font-size: 12px; color: rgba(11,37,69,0.5); margin-top: 2px; word-break: break-word; }
+  .admin-rsvp-select {
+    font-size: 14px; padding: 8px 8px; border-radius: 3px; border: 1px solid var(--line);
+    background: #fff; color: var(--ink); flex-shrink: 0;
+  }
+  .icon-btn {
+    background: none; border: none; cursor: pointer; color: rgba(11,37,69,0.4);
+    font-size: 18px; padding: 6px 10px; border-radius: 3px; flex-shrink: 0;
+  }
+  .icon-btn:hover { color: var(--red); background: rgba(139,46,46,0.08); }
+
+  /* ---------- Groups ---------- */
+  .group-card {
+    border: 1.5px solid var(--line);
+    border-radius: 4px;
+    padding: 16px;
+    margin-bottom: 14px;
+    background: #fff;
+  }
+  .group-card-head {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 10px;
+  }
+  .group-card-head .gtitle {
+    font-family: 'Arial Black', 'Helvetica Neue', sans-serif; font-weight: 900; text-transform: uppercase; font-size: 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .group-member {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 10px; background: var(--parchment); border-radius: 3px;
+    margin-bottom: 6px; font-size: 14px; font-weight: 500;
+    cursor: grab;
+  }
+  .group-member.dragging { opacity: 0.4; }
+  .group-card.dragover { border-color: var(--gold); background: rgba(201,162,39,0.06); }
+  .group-member .mv-select { font-size: 11px; }
+  .mutual-tag {
+    font-size: 9.5px; font-weight: 700; color: var(--gold); background: var(--ink);
+    padding: 2px 6px; border-radius: 10px; letter-spacing: 0.03em;
+  }
+
+  .small-note { font-size: 12px; color: rgba(11,37,69,0.5); margin-top: 8px; }
+
+  .tabs { display: flex; gap: 4px; margin-bottom: 20px; background: rgba(244,248,251,0.08); padding: 4px; border-radius: 5px; }
+  .tab-btn {
+    flex: 1; padding: 10px; border: none; background: transparent; color: rgba(244,248,251,0.5);
+    font-weight: 600; font-size: 13px; border-radius: 4px; cursor: pointer; font-family: 'Inter', sans-serif;
+  }
+  .tab-btn.active { background: var(--paper); color: var(--ink); }
+
+  .empty-state {
+    text-align: center; padding: 30px 16px; color: rgba(11,37,69,0.4); font-size: 14px;
+  }
+
+  ::placeholder { color: rgba(11,37,69,0.35); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .btn, .choice-card, .roster-row, .pref-row, .rsvp-opt { transition: none; }
+  }
+
+  @media (max-width: 420px) {
+    .app { padding: 24px 14px 70px; }
+    .panel { padding: 20px 16px; }
+    .btn { padding: 13px 16px; font-size: 13px; }
+    .btn-row { gap: 8px; }
+    .rsvp-toggle { gap: 8px; }
+    .rsvp-opt { padding: 16px 10px; font-size: 13px; }
+    .group-member { flex-wrap: wrap; gap: 6px; }
+    .pref-row { padding: 12px; }
+    .eyebrow { font-size: 10.5px; letter-spacing: 0.18em; padding: 0 8px; }
+    .choice-card { padding: 18px; }
+    .choice-card .label { font-size: 17px; }
+    .panel h2 { font-size: 17px; flex-wrap: wrap; }
+    .admin-row { gap: 8px; }
+    .group-card { padding: 14px; }
+  }
+</style>
+</head>
+<body>
+<div id="snowfall" class="snowfall"></div>
+<div id="root" class="app"></div>
+<div id="toast" class="toast"></div>
+
+<script>
+(function(){
+  const ADMIN_PASS = 'champions'; // simple shared passcode
+
+  let state = {
+    eventName: 'Winter Drinking Olympics 2026',
+    eventDate: '',
+    eventStartTime: '',
+    slogan: 'One Night · Five Events · Great Memories',
+    rsvpDueDate: '',
+    revealDate: '',
+    guests: [], // {id, name, rsvp: 'going'|'notgoing'|null, preference: id|null}
+    groups: [], // {id, name, flag, memberIds: []}
+    groupSize: 4,
+    rules: [] // {id, title, text}
+  };
+
+  let view = 'loading'; // loading, landing, guestSelect, guestHome, guestRSVP, guestPref, adminLogin, adminHome
+  let currentGuestId = null;
+  let adminUnlocked = false;
+  let draggedMemberId = null;
+  let draggedFromGroup = null;
+
+  function confettiBurst() {
+    const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion) return;
+    const colors = ['#C8222C', '#3E7CB1', '#F4F8FB', '#5C9BCB'];
+    const count = 28;
+    for (let i = 0; i < count; i++) {
+      const piece = document.createElement('div');
+      piece.className = 'confetti-piece';
+      const left = Math.random() * 100;
+      const duration = 1.6 + Math.random() * 1.2;
+      const delay = Math.random() * 0.3;
+      const spin = (Math.random() > 0.5 ? 1 : -1) * (360 + Math.random() * 360);
+      piece.style.left = left + 'vw';
+      piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+      piece.style.animationDuration = duration + 's';
+      piece.style.animationDelay = delay + 's';
+      piece.style.setProperty('--spin', spin + 'deg');
+      document.body.appendChild(piece);
+      setTimeout(() => piece.remove(), (duration + delay) * 1000 + 100);
+    }
+  }
+
+  function uid() { return Math.random().toString(36).slice(2,10); }
+
+  let toastTimer = null;
+  function showToast(message, isError) {
+    const el = document.getElementById('toast');
+    if (!el) return;
+    el.textContent = isError ? message : ('✓ ' + message);
+    el.classList.toggle('error', !!isError);
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
+  }
+
+  // ====== FIREBASE CONFIG ======
+  // Fill this in with your own free Firebase Realtime Database URL.
+  // See setup instructions provided separately — takes about 5 minutes, free tier.
+  const FIREBASE_DB_URL = 'https://alex-46c79-default-rtdb.firebaseio.com';
+  const FIREBASE_PATH = 'drinking_olympics_v1';
+
+  function firebaseConfigured() {
+    return FIREBASE_DB_URL && !FIREBASE_DB_URL.includes('YOUR-PROJECT-ID');
+  }
+
+  async function loadState() {
+    if (!firebaseConfigured()) {
+      view = 'landing';
+      render();
+      showToast('Firebase not set up yet — see setup instructions', true);
+      return;
+    }
+    try {
+      const res = await fetch(`${FIREBASE_DB_URL}/${FIREBASE_PATH}.json`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data) {
+          state = Object.assign(state, data);
+        }
+      }
+    } catch(e) {
+      console.error('load failed', e);
+    }
+    applyVoidLogic();
+    view = 'landing';
+    render();
+    startPolling();
+  }
+
+  let pollTimer = null;
+  function startPolling() {
+    clearInterval(pollTimer);
+    pollTimer = setInterval(async () => {
+      // Skip entirely on screens with no shared data to show, or where
+      // a re-render would disrupt someone actively typing.
+      if (!firebaseConfigured()) return;
+      const skipViews = ['landing','guestSelect','adminLogin','rulesView'];
+      if (skipViews.includes(view)) return;
+      if (document.activeElement && ['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) return;
+      try {
+        const res = await fetch(`${FIREBASE_DB_URL}/${FIREBASE_PATH}.json`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data) {
+            const prevGuests = JSON.stringify(state.guests);
+            const prevGroups = JSON.stringify(state.groups);
+            const justDeleted = state._deletedGuestIds || [];
+            if (justDeleted.length && data.guests) {
+              data.guests = data.guests.filter(g => !justDeleted.includes(g.id));
+            }
+            state = Object.assign(state, data);
+            applyVoidLogic();
+            if (JSON.stringify(state.guests) !== prevGuests || JSON.stringify(state.groups) !== prevGroups) {
+              render();
+            }
+          }
+        }
+      } catch(e) { /* silent — will retry next interval */ }
+    }, 4000);
+  }
+
+  async function saveState(silent) {
+    if (!firebaseConfigured()) {
+      showToast('Firebase not set up yet — see setup instructions', true);
+      return false;
+    }
+    try {
+      // Fetch the latest remote copy first so a near-simultaneous edit from
+      // another device isn't blindly overwritten by stale local state.
+      let remote = null;
+      try {
+        const getRes = await fetch(`${FIREBASE_DB_URL}/${FIREBASE_PATH}.json`);
+        if (getRes.ok) remote = await getRes.json();
+      } catch(e) { /* if this fails, fall back to local state only */ }
+
+      const merged = remote ? mergeRemoteIntoLocal(remote, state) : state;
+      state = merged;
+
+      const res = await fetch(`${FIREBASE_DB_URL}/${FIREBASE_PATH}.json`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(state)
+      });
+      if (!res.ok) {
+        showToast('Save failed — try again', true);
+        return false;
+      }
+      if (!silent) showToast('Saved');
+      return true;
+    } catch(e) {
+      console.error('save failed', e);
+      showToast('Save failed — check your connection', true);
+      return false;
+    }
+  }
+
+  // Combines a freshly-fetched remote state with local edits: guests/groups/rules
+  // are merged by id so one device's edit to Guest A doesn't erase another
+  // device's just-made edit to Guest B. Local always wins for the specific
+  // record currently being edited, since `state` already holds that change.
+  function mergeRemoteIntoLocal(remote, local) {
+    const result = Object.assign({}, remote, {
+      eventName: local.eventName,
+      eventDate: local.eventDate,
+      eventStartTime: local.eventStartTime,
+      rsvpDueDate: local.rsvpDueDate,
+      revealDate: local.revealDate,
+      groupSize: local.groupSize
+    });
+
+    const remoteGuests = remote.guests || [];
+    const localGuests = local.guests || [];
+    const localIds = new Set(localGuests.map(g => g.id));
+    const remoteIds = new Set(remoteGuests.map(g => g.id));
+
+    // A guest missing from local but present in remote was just deleted locally —
+    // respect that deletion rather than reviving them from the stale remote copy.
+    // (We detect "just deleted" by checking deletedGuestIds, set by remove-guest.)
+    const justDeleted = local._deletedGuestIds || [];
+
+    const guestMap = {};
+    remoteGuests.forEach(g => { if (!justDeleted.includes(g.id)) guestMap[g.id] = g; });
+    localGuests.forEach(g => guestMap[g.id] = g); // local edits win for matching ids
+
+    // Preserve order: remote order first (minus deletions), then any new local-only guests appended
+    const orderedIds = remoteGuests.map(g => g.id).filter(id => !justDeleted.includes(id));
+    localGuests.forEach(g => { if (!orderedIds.includes(g.id)) orderedIds.push(g.id); });
+    result.guests = orderedIds.map(id => guestMap[id]).filter(Boolean);
+    delete result._deletedGuestIds;
+
+    const remoteGroups = remote.groups || [];
+    const localGroups = local.groups || [];
+    // If local has groups (admin is actively managing them), prefer local groups wholesale,
+    // since group membership edits are admin-only and infrequent compared to RSVP traffic.
+    result.groups = localGroups.length > 0 ? localGroups : remoteGroups;
+
+    const remoteRules = remote.rules || [];
+    const localRules = local.rules || [];
+    result.rules = localRules.length >= remoteRules.length ? localRules : remoteRules;
+
+    return result;
+  }
+
+  function applyVoidLogic() {
+    state.guests.forEach(g => {
+      if (g.preference) {
+        const pref = state.guests.find(x => x.id === g.preference);
+        if (pref && pref.rsvp === 'notgoing') {
+          g.preference = null;
+        }
+        if (!pref) g.preference = null;
+      }
+    });
+  }
+
+  function isLocked() {
+    if (!state.rsvpDueDate) return false;
+    const due = new Date(state.rsvpDueDate);
+    due.setHours(23,59,59,999);
+    return new Date() > due;
+  }
+
+  function daysUntilLock() {
+    if (!state.rsvpDueDate) return null;
+    const due = new Date(state.rsvpDueDate);
+    due.setHours(23,59,59,999);
+    const diff = Math.ceil((due - new Date()) / (1000*60*60*24));
+    return diff;
+  }
+
+  function isRevealed() {
+    if (!state.revealDate) return false;
+    const reveal = new Date(state.revealDate);
+    reveal.setHours(0,0,0,0);
+    return new Date() >= reveal;
+  }
+
+  function daysUntilReveal() {
+    if (!state.revealDate) return null;
+    const reveal = new Date(state.revealDate);
+    reveal.setHours(0,0,0,0);
+    const diff = Math.ceil((reveal - new Date()) / (1000*60*60*24));
+    return diff;
+  }
+
+  function findMyGroup(guestId) {
+    return state.groups.find(g => g.memberIds.includes(guestId)) || null;
+  }
+
+  function eventCountdownHtml() {
+    if (!state.eventDate) return '';
+    const target = new Date(state.eventDate);
+    if (state.eventStartTime) {
+      const [h, m] = state.eventStartTime.split(':').map(Number);
+      target.setHours(h, m, 0, 0);
+    } else {
+      target.setHours(0, 0, 0, 0);
+    }
+    const now = new Date();
+    const diffMs = target - now;
+    if (diffMs <= 0) {
+      return `<div style="text-align:center; padding:14px; background:rgba(200,34,44,0.08); border-radius:6px; margin-bottom:18px; font-weight:800; color:var(--red); text-transform:uppercase; letter-spacing:0.03em;">🏁 The Games Have Begun!</div>`;
+    }
+    const days = Math.floor(diffMs / (1000*60*60*24));
+    const hours = Math.floor((diffMs % (1000*60*60*24)) / (1000*60*60));
+    return `
+      <div style="text-align:center; padding:16px; background:rgba(62,124,177,0.08); border-radius:6px; margin-bottom:18px;">
+        <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.12em; color:rgba(11,37,69,0.5); font-weight:700; margin-bottom:4px;">Countdown to Glory</div>
+        <div style="font-size:28px; font-weight:900; font-family:'Arial Black', sans-serif; color:var(--ink);">${days}<span style="font-size:15px; font-weight:700;"> day${days===1?'':'s'}</span> ${hours}<span style="font-size:15px; font-weight:700;">h</span></div>
+      </div>
+    `;
+  }
+
+  function esc(str) {
+    const d = document.createElement('div');
+    d.innerText = str;
+    return d.innerHTML;
+  }
+
+  // ---------------- RENDER ----------------
+  function render() {
+    const root = document.getElementById('root');
+    if (view === 'loading') {
+      root.innerHTML = `<div style="text-align:center;padding-top:120px;color:rgba(244,248,251,0.5);font-size:14px;">Loading...</div>`;
+      return;
+    }
+    root.innerHTML = header() + body();
+    attachHandlers();
+  }
+
+  function header() {
+    if (view === 'landing') {
+      const snowflake = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v20M4.5 7l15 10M19.5 7l-15 10"/><path d="M12 5l-2 2M12 5l2 2M12 19l-2-2M12 19l2-2M6 9.5l-2.5-.7M6 9.5l-1 2.4M18 9.5l2.5-.7M18 9.5l1 2.4M6 14.5l-2.5.7M6 14.5l-1-2.4M18 14.5l2.5.7M18 14.5l1-2.4"/></svg>`;
+      return `
+        <div class="torch-bar">
+          <div class="ring">${snowflake}</div>
+          <div class="ring" style="width:22px;height:22px;color:var(--gold-light);">${snowflake}</div>
+          <div class="ring">${snowflake}</div>
+        </div>
+        <div class="eyebrow">${esc(state.slogan || 'One Night · Five Events · Great Memories')}</div>
+        <h1 class="event-title display">${esc(state.eventName)}</h1>
+        ${state.eventDate ? `<div class="event-sub">${formatDate(state.eventDate)}</div>` : `<div class="event-sub">Date TBC</div>`}
+        <div class="header-rule"></div>
+      `;
+    }
+    return '';
+  }
+
+  function formatDate(d) {
+    const dt = new Date(d);
+    return dt.toLocaleDateString('en-AU', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  }
+
+  function body() {
+    switch(view) {
+      case 'landing': return landingView();
+      case 'guestSelect': return guestSelectView();
+      case 'guestHome': return guestHomeView();
+      case 'guestRSVP': return guestRSVPView();
+      case 'guestPref': return guestPrefView();
+      case 'rulesView': return rulesView();
+      case 'myTeam': return myTeamView();
+      case 'adminLogin': return adminLoginView();
+      case 'adminHome': return adminHomeView();
+      default: return '';
+    }
+  }
+
+  function landingView() {
+    return `
+      <div class="landing-choices">
+        <div class="choice-card" data-action="go-guest-select">
+          <div class="label display">I'm a Guest</div>
+          <div class="sub">Find your name, RSVP, and pick your teammate preference</div>
+        </div>
+        <div class="choice-card" data-action="go-admin-login">
+          <div class="label display">Event Admin</div>
+          <div class="sub">Manage the roster, RSVPs, and form the groups</div>
+        </div>
+        <div class="choice-card" data-action="go-rules">
+          <div class="label display">Rules &amp; Regulations</div>
+          <div class="sub">Read the official rulebook before you compete</div>
+        </div>
+      </div>
+    `;
+  }
+
+  function guestSelectView() {
+    const guests = [...state.guests].sort((a,b) => a.name.localeCompare(b.name));
+    return `
+      <button class="back-link" data-action="go-landing">&larr; Back</button>
+      <div class="panel">
+        <h2>Find Your Name</h2>
+        <div class="desc">Tap your name on the roster to continue.</div>
+        ${guests.length === 0 ? `<div class="empty-state">No guests have been added yet. Check back soon.</div>` : `
+        <ul class="roster-list">
+          ${guests.map(g => `
+            <li class="roster-row" data-action="select-guest" data-id="${g.id}">
+              <span class="roster-name">${esc(g.name)}</span>
+              <span class="roster-arrow">&rarr;</span>
+            </li>
+          `).join('')}
+        </ul>`}
+      </div>
+    `;
+  }
+
+  function guestHomeView() {
+    const guest = state.guests.find(g => g.id === currentGuestId);
+    if (!guest) { view = 'guestSelect'; return guestSelectView(); }
+    const locked = isLocked();
+    const prefGuest = guest.preference ? state.guests.find(g => g.id === guest.preference) : null;
+    const revealed = isRevealed();
+    const myGroup = findMyGroup(guest.id);
+
+    return `
+      <button class="back-link" data-action="go-guest-select">&larr; Not you? Switch name</button>
+      <div class="panel">
+        <h2><span class="medal-num">${esc(guest.name.charAt(0).toUpperCase())}</span>${esc(guest.name)}</h2>
+        <div class="desc">Your status for ${esc(state.eventName)}</div>
+
+        ${locked ? `<div class="banner-locked">Entries are locked. Contact the organiser for changes.</div>` : ''}
+
+        <div style="margin-bottom:22px;">
+          <label class="field-label">RSVP Status</label>
+          <div style="margin-top:8px;">
+            <span class="status-tag ${guest.rsvp === 'going' ? 'status-going' : guest.rsvp === 'notgoing' ? 'status-notgoing' : 'status-pending'}">
+              ${guest.rsvp === 'going' ? 'Going' : guest.rsvp === 'notgoing' ? 'Not Going' : 'No Response Yet'}
+            </span>
+          </div>
+        </div>
+
+        <div style="margin-bottom:22px;">
+          <label class="field-label">Your Preference</label>
+          <div style="margin-top:8px; font-size:15px; font-weight:600;">
+            ${prefGuest ? esc(prefGuest.name) : '<span style="color:rgba(11,37,69,0.4); font-weight:400;">No preference set</span>'}
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-gold" data-action="go-rsvp" ${locked ? 'disabled' : ''}>Update RSVP</button>
+          <button class="btn btn-outline" data-action="go-pref" ${locked ? 'disabled' : ''}>Set Preference</button>
+        </div>
+        ${locked ? `<div class="lock-note">🔒 RSVP and preferences are locked.</div>` : (state.rsvpDueDate ? `<div class="lock-note">RSVP due ${formatDate(state.rsvpDueDate)}${daysUntilLock() !== null && daysUntilLock() >= 0 ? ` · ${daysUntilLock()} day${daysUntilLock()===1?'':'s'} left` : ''}</div>` : '')}
+      </div>
+
+      <div class="panel">
+        <h2>Event Details</h2>
+        ${eventCountdownHtml()}
+        <ul style="list-style:none; padding:0; margin:0; font-size:14px;">
+          ${state.eventDate ? `<li style="padding:6px 0; border-bottom:1px solid var(--line);"><strong>Date:</strong> ${formatDate(state.eventDate)}</li>` : ''}
+          ${state.eventStartTime ? `<li style="padding:6px 0; border-bottom:1px solid var(--line);"><strong>Starts:</strong> ${formatTime(state.eventStartTime)}</li>` : ''}
+          ${state.revealDate ? `<li style="padding:6px 0;"><strong>Group Reveal:</strong> ${formatDate(state.revealDate)}</li>` : ''}
+          ${!state.eventDate && !state.eventStartTime && !state.revealDate ? `<li style="color:rgba(11,37,69,0.4); padding:6px 0;">Details coming soon.</li>` : ''}
+        </ul>
+      </div>
+
+      <div class="btn-row" style="margin-bottom:4px;">
+        <button class="btn btn-olive btn-full" data-action="go-my-team">${revealed && myGroup ? '🏳️ See My Team' : '🔒 My Team'}</button>
+      </div>
+      ${!revealed ? `<div class="lock-note" style="justify-content:center; margin-bottom:14px;">Reveals ${state.revealDate ? formatDate(state.revealDate) : '— date TBC'}</div>` : `<div style="margin-bottom:14px;"></div>`}
+      <div class="btn-row">
+        <button class="btn btn-ghost btn-full" data-action="go-rules">📋 Rules &amp; Regulations</button>
+      </div>
+    `;
+  }
+
+  function formatTime(t) {
+    if (!t) return '';
+    const [h, m] = t.split(':').map(Number);
+    const period = h >= 12 ? 'PM' : 'AM';
+    const hour12 = h % 12 === 0 ? 12 : h % 12;
+    return `${hour12}:${String(m).padStart(2,'0')} ${period}`;
+  }
+
+  function myTeamView() {
+    const guest = state.guests.find(g => g.id === currentGuestId);
+    if (!guest) { view='guestSelect'; return guestSelectView(); }
+    const revealed = isRevealed();
+    const myGroup = findMyGroup(guest.id);
+
+    if (!revealed) {
+      return `
+        <button class="back-link" data-action="go-guest-home">&larr; Back</button>
+        <div class="panel">
+          <h2>My Team</h2>
+          <div class="desc">Team assignments haven't been revealed yet.</div>
+          <div class="empty-state">
+            🔒 Check back ${state.revealDate ? `on ${formatDate(state.revealDate)}` : 'once the organiser sets a reveal date'}.
+            ${daysUntilReveal() !== null && daysUntilReveal() > 0 ? `<div style="margin-top:8px; font-weight:700; color:var(--ink);">${daysUntilReveal()} day${daysUntilReveal()===1?'':'s'} to go</div>` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    if (!myGroup) {
+      return `
+        <button class="back-link" data-action="go-guest-home">&larr; Back</button>
+        <div class="panel">
+          <h2>My Team</h2>
+          <div class="empty-state">You haven't been placed in a team yet. Check with the organiser.</div>
+        </div>
+      `;
+    }
+
+    const teammates = myGroup.memberIds.map(id => state.guests.find(g => g.id === id)).filter(Boolean).filter(g => g.id !== guest.id);
+    return `
+      <button class="back-link" data-action="go-guest-home">&larr; Back</button>
+      <div class="panel">
+        <h2>${myGroup.flag ? esc(myGroup.flag) + ' ' : ''}${esc(myGroup.name)}</h2>
+        <div class="desc">Your country for ${esc(state.eventName)}</div>
+        <label class="field-label">Your Teammates</label>
+        <ul class="roster-list" style="margin-top:8px;">
+          ${teammates.length === 0 ? `<li style="padding:10px 0; color:rgba(11,37,69,0.4);">No other teammates yet.</li>` : teammates.map(t => `
+            <li class="roster-row" style="cursor:default;">
+              <span class="roster-name">${esc(t.name)}</span>
+            </li>
+          `).join('')}
+        </ul>
+      </div>
+    `;
+  }
+
+  function rulesView() {
+    return `
+      <button class="back-link" data-action="${currentGuestId ? 'go-guest-home' : 'go-landing'}">&larr; Back</button>
+      <div class="panel">
+        <h2>📋 Rules &amp; Regulations</h2>
+        <div class="desc">${esc(state.eventName)} — official rulebook</div>
+        ${state.rules.length === 0 ? `<div class="empty-state">No rules added yet. Check back soon.</div>` : state.rules.map((r, i) => `
+          <div style="margin-bottom:18px; padding-bottom:16px; border-bottom:1px solid var(--line);">
+            <div style="font-weight:800; font-size:15px; margin-bottom:4px; display:flex; align-items:center; gap:8px;"><span class="medal-num">${i+1}</span>${esc(r.title)}</div>
+            <div style="font-size:14px; color:rgba(11,37,69,0.75); white-space:pre-wrap; padding-left:36px;">${esc(r.text)}</div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  function guestRSVPView() {
+    const guest = state.guests.find(g => g.id === currentGuestId);
+    if (!guest) { view='guestSelect'; return guestSelectView(); }
+    const locked = isLocked();
+    return `
+      <button class="back-link" data-action="go-guest-home">&larr; Back</button>
+      <div class="panel">
+        <h2>RSVP</h2>
+        <div class="desc">Will ${esc(guest.name)} be attending?</div>
+        ${locked ? `<div class="banner-locked">Entries are locked. Contact the organiser for changes.</div>` : ''}
+        <div class="rsvp-toggle">
+          <div class="rsvp-opt going ${guest.rsvp === 'going' ? 'active going' : ''}" data-action="set-rsvp" data-val="going" style="${locked ? 'pointer-events:none;opacity:0.5;' : ''}">GOING</div>
+          <div class="rsvp-opt notgoing ${guest.rsvp === 'notgoing' ? 'active notgoing' : ''}" data-action="set-rsvp" data-val="notgoing" style="${locked ? 'pointer-events:none;opacity:0.5;' : ''}">NOT GOING</div>
+        </div>
+        ${daysUntilLock() !== null && daysUntilLock() > 0 ? `<div class="lock-note">RSVP locks in ${daysUntilLock()} day${daysUntilLock()===1?'':'s'}.</div>` : ''}
+      </div>
+    `;
+  }
+
+  function guestPrefView() {
+    const guest = state.guests.find(g => g.id === currentGuestId);
+    if (!guest) { view='guestSelect'; return guestSelectView(); }
+    const locked = isLocked();
+    const others = state.guests.filter(g => g.id !== guest.id).sort((a,b) => a.name.localeCompare(b.name));
+
+    return `
+      <button class="back-link" data-action="go-guest-home">&larr; Back</button>
+      <div class="panel">
+        <h2>Pick Your Preference</h2>
+        <div class="desc">Optional — choose who you'd like to be teamed with. Green means they're already going, red means they've said no, and grey means no response yet. You can still pick anyone.</div>
+        ${locked ? `<div class="banner-locked">Entries are locked. Contact the organiser for changes.</div>` : ''}
+        <ul class="pref-list">
+          ${others.map(g => {
+            const statusClass = g.rsvp === 'going' ? 'going' : g.rsvp === 'notgoing' ? 'notgoing' : 'pending';
+            const selected = guest.preference === g.id;
+            return `
+              <li class="pref-row ${statusClass} ${selected ? 'selected' : ''}" data-action="${locked ? '' : 'set-pref'}" data-id="${g.id}" style="${locked ? 'pointer-events:none;opacity:0.6;' : ''}">
+                <span class="pname"><span class="dot ${statusClass}"></span>${esc(g.name)}</span>
+                ${selected ? '<span class="pick-mark">✓ SELECTED</span>' : ''}
+              </li>
+            `;
+          }).join('')}
+        </ul>
+        ${guest.preference ? `<div style="margin-top:16px;"><button class="btn btn-outline btn-sm" data-action="clear-pref" ${locked ? 'disabled' : ''}>Clear preference</button></div>` : ''}
+      </div>
+    `;
+  }
+
+  function adminLoginView() {
+    return `
+      <button class="back-link" data-action="go-landing">&larr; Back</button>
+      <div class="panel">
+        <h2>Admin Access</h2>
+        <div class="desc">Enter the event passcode.</div>
+        <div class="field">
+          <input type="password" id="admin-pass-input" placeholder="Passcode">
+        </div>
+        <div id="admin-login-error" style="color:var(--red); font-size:13px; margin-bottom:12px; display:none;">Incorrect passcode.</div>
+        <button class="btn btn-gold btn-full" data-action="try-admin-login">Enter</button>
+      </div>
+    `;
+  }
+
+  function adminHomeView() {
+    if (!adminUnlocked) { view = 'adminLogin'; return adminLoginView(); }
+    const goingCount = state.guests.filter(g => g.rsvp === 'going').length;
+    const notGoingCount = state.guests.filter(g => g.rsvp === 'notgoing').length;
+    const pendingCount = state.guests.length - goingCount - notGoingCount;
+    const total = state.guests.length || 1;
+    const goingPct = Math.round((goingCount/total)*100);
+    const notGoingPct = Math.round((notGoingCount/total)*100);
+    const pendingPct = 100 - goingPct - notGoingPct;
+
+    return `
+      <button class="back-link" data-action="admin-logout">&larr; Log out</button>
+      <div class="eyebrow" style="text-align:left; margin-bottom:8px;">Admin Console</div>
+      <h1 class="event-title display" style="text-align:left; font-size:30px; margin-bottom:16px;">${esc(state.eventName)}</h1>
+
+      <div class="panel">
+        <h2>RSVP Snapshot</h2>
+        <div class="desc">${state.guests.length} total invited</div>
+        <div style="display:flex; height:14px; border-radius:8px; overflow:hidden; margin-bottom:14px; background:rgba(11,37,69,0.08);">
+          ${goingCount > 0 ? `<div style="width:${goingPct}%; background:var(--olive);"></div>` : ''}
+          ${notGoingCount > 0 ? `<div style="width:${notGoingPct}%; background:var(--red);"></div>` : ''}
+          ${pendingCount > 0 ? `<div style="width:${pendingPct}%; background:rgba(11,37,69,0.18);"></div>` : ''}
+        </div>
+        <div style="display:flex; gap:18px; flex-wrap:wrap; font-size:13px;">
+          <span><span style="display:inline-block; width:9px; height:9px; border-radius:50%; background:var(--olive); margin-right:5px;"></span><strong>${goingCount}</strong> Going</span>
+          <span><span style="display:inline-block; width:9px; height:9px; border-radius:50%; background:var(--red); margin-right:5px;"></span><strong>${notGoingCount}</strong> Not Going</span>
+          <span><span style="display:inline-block; width:9px; height:9px; border-radius:50%; background:rgba(11,37,69,0.3); margin-right:5px;"></span><strong>${pendingCount}</strong> Pending</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Event Details</h2>
+        <div class="field">
+          <label class="field-label">Event Name</label>
+          <input type="text" id="event-name-input" value="${esc(state.eventName)}">
+        </div>
+        <div class="field">
+          <label class="field-label">Top Slogan</label>
+          <input type="text" id="event-slogan-input" value="${esc(state.slogan || '')}" placeholder="e.g. Drink. Compete. Win.">
+        </div>
+        <div class="field">
+          <label class="field-label">Event Date</label>
+          <input type="date" id="event-date-input" value="${state.eventDate || ''}">
+        </div>
+        <div class="field">
+          <label class="field-label">Event Start Time</label>
+          <input type="time" id="event-time-input" value="${state.eventStartTime || ''}">
+        </div>
+        <div class="field">
+          <label class="field-label">RSVP Due Date (guest edits lock after this)</label>
+          <input type="date" id="rsvp-due-input" value="${state.rsvpDueDate || ''}">
+        </div>
+        <div class="field">
+          <label class="field-label">Group Reveal Date (guests can see "My Team" from this date)</label>
+          <input type="date" id="reveal-date-input" value="${state.revealDate || ''}">
+        </div>
+        <button class="btn btn-olive" data-action="save-event-details">Save Event Details</button>
+      </div>
+
+      <div class="panel">
+        <h2>Roster <span style="font-size:12px; font-weight:400; color:rgba(11,37,69,0.5);">(${state.guests.length})</span></h2>
+        <div class="desc">Add guests, override RSVPs, or remove someone. Gender is admin-only and never shown to guests — used only to help balance groups.</div>
+        <div class="btn-row" style="margin-bottom:16px;">
+          <input type="text" id="new-guest-input" placeholder="Add guest name" style="flex:1;">
+          <select id="new-guest-gender" style="font-size:14px; padding:12px 10px; border-radius:3px; border:1.5px solid var(--line); background:#fff; color:var(--ink);">
+            <option value="">Gender</option>
+            <option value="M">Male</option>
+            <option value="F">Female</option>
+          </select>
+          <button class="btn btn-gold" data-action="add-guest">Add</button>
+        </div>
+        ${state.guests.length === 0 ? `<div class="empty-state">No guests yet — add your first competitor above.</div>` : `
+        <div>
+          ${[...state.guests].sort((a,b)=>a.name.localeCompare(b.name)).map(g => {
+            const pref = g.preference ? state.guests.find(p => p.id === g.preference) : null;
+            const others = state.guests.filter(o => o.id !== g.id).sort((a,b)=>a.name.localeCompare(b.name));
+            return `
+            <div class="admin-row" style="flex-wrap:wrap; align-items:flex-start; padding:12px 0;">
+              <div class="who" style="flex:1 1 100%; margin-bottom:8px;">
+                <div class="nm">${esc(g.name)}</div>
+              </div>
+              <div style="display:flex; gap:8px; flex-wrap:wrap; width:100%; align-items:center;">
+                <select class="admin-rsvp-select" data-id="${g.id}" style="font-size:12.5px; padding:6px 8px; border-radius:3px; border:1px solid var(--line);">
+                  <option value="" ${!g.rsvp ? 'selected' : ''}>Pending</option>
+                  <option value="going" ${g.rsvp==='going'?'selected':''}>Going</option>
+                  <option value="notgoing" ${g.rsvp==='notgoing'?'selected':''}>Not Going</option>
+                </select>
+                <select class="admin-gender-select" data-id="${g.id}" style="font-size:12.5px; padding:6px 8px; border-radius:3px; border:1px solid var(--line);">
+                  <option value="" ${!g.gender ? 'selected' : ''}>Gender</option>
+                  <option value="M" ${g.gender==='M'?'selected':''}>Male</option>
+                  <option value="F" ${g.gender==='F'?'selected':''}>Female</option>
+                </select>
+                <select class="admin-pref-select" data-id="${g.id}" style="font-size:12.5px; padding:6px 8px; border-radius:3px; border:1px solid var(--line); flex:1; min-width:120px;">
+                  <option value="">Prefers: none</option>
+                  ${others.map(o => `<option value="${o.id}" ${g.preference===o.id?'selected':''}>Prefers: ${esc(o.name)}</option>`).join('')}
+                </select>
+                <button class="icon-btn" data-action="remove-guest" data-id="${g.id}" title="Remove guest">✕</button>
+              </div>
+            </div>
+          `}).join('')}
+        </div>
+        <button class="btn btn-outline btn-sm" data-action="copy-guest-summary" style="margin-top:14px;">📋 Copy Guest Summary</button>
+        `}
+      </div>
+
+      <div class="panel">
+        <h2>Form Groups</h2>
+        <div class="desc">Generate groups, weighted toward keeping preference picks together first, then balancing gender where possible. Drag or use the dropdown to fine-tune afterward.</div>
+        <div class="field">
+          <label class="field-label">Group Size (fixed for all groups)</label>
+          <div class="btn-row" style="align-items:center;">
+            <input type="number" id="group-size-input" min="2" max="20" value="${state.groupSize}" style="max-width:100px;">
+            <button class="btn btn-olive" data-action="generate-groups">Generate Groups</button>
+          </div>
+        </div>
+        <div class="small-note">Want custom-sized groups instead? Generate first, then use "Add Group" below and drag members in — the generator will skip locked groups.</div>
+
+        ${state.groups.length > 0 ? renderGroups() : `<div class="empty-state" style="padding:20px;">No groups generated yet.</div>`}
+
+        ${state.groups.length > 0 ? `<button class="btn btn-outline btn-sm" data-action="add-empty-group" style="margin-top:6px;">+ Add Empty Group</button>
+        <button class="btn btn-outline btn-sm" data-action="copy-groups-summary" style="margin-top:6px;">📋 Copy Teams for Announcement</button>` : ''}
+      </div>
+
+      <div class="panel">
+        <h2>Rules &amp; Regulations</h2>
+        <div class="desc">Add the official rules guests will see. Each entry has a title and the rule text.</div>
+        <div class="field">
+          <label class="field-label">Rule Title</label>
+          <input type="text" id="new-rule-title" placeholder="e.g. Curling Scoring">
+        </div>
+        <div class="field">
+          <label class="field-label">Rule Text (use • or - for dot points, press Enter for new lines)</label>
+          <textarea id="new-rule-text" placeholder="e.g. Closest stone to the centre wins the round.&#10;• Teams of 4 compete simultaneously&#10;• First to 5 points wins"></textarea>
+        </div>
+        <button class="btn btn-gold" data-action="add-rule">Add Rule</button>
+        <div class="small-note" style="margin-top:8px;">Tip: Press Ctrl+Enter (or Cmd+Enter) to quickly add the rule.</div>
+
+        ${state.rules.length === 0 ? `<div class="empty-state" style="padding:18px 0 0;">No rules added yet.</div>` : `
+        <div style="margin-top:18px;">
+          ${state.rules.map((r, i) => `
+            <div class="admin-row" style="align-items:flex-start;">
+              <div class="who">
+                <div class="nm">${i+1}. ${esc(r.title)}</div>
+                <div class="pref-note">${esc(r.text)}</div>
+              </div>
+              <button class="icon-btn" data-action="remove-rule" data-id="${r.id}" title="Remove rule">✕</button>
+            </div>
+          `).join('')}
+        </div>
+        `}
+      </div>
+    `;
+  }
+
+  function renderGroups() {
+    const goingGuests = state.guests.filter(g => g.rsvp === 'going');
+    return state.groups.map((grp, idx) => {
+      const members = grp.memberIds.map(id => state.guests.find(g => g.id === id)).filter(Boolean);
+      return `
+        <div class="group-card" data-action="group-dropzone" data-group="${grp.id}">
+          <div class="group-card-head">
+            <span class="gtitle"><span class="medal-num">${idx+1}</span><span style="font-size:11px; color:rgba(11,37,69,0.4); font-weight:400;">(${members.length})</span></span>
+            <button class="icon-btn" data-action="remove-group" data-id="${grp.id}" title="Delete group">✕</button>
+          </div>
+          <div class="btn-row" style="margin-bottom:12px;">
+            <input type="text" class="group-flag-input" data-id="${grp.id}" value="${esc(grp.flag || '')}" placeholder="🏳️" style="max-width:56px; text-align:center; padding:8px 6px;">
+            <input type="text" class="group-name-input" data-id="${grp.id}" value="${esc(grp.name || '')}" placeholder="Country name (e.g. Team Norway)" style="flex:1; padding:8px 10px; font-size:13.5px; min-width:0;">
+            <button class="btn btn-olive btn-sm" data-action="save-group-name" data-id="${grp.id}" style="flex-shrink:0;">Save</button>
+          </div>
+          ${members.length === 0 ? `<div style="font-size:12.5px; color:rgba(11,37,69,0.35); padding:8px 0;">No one here yet — move guests in using the dropdown on their row.</div>` : members.map(m => {
+            const mutual = m.preference && state.guests.find(o => o.id === m.preference)?.preference === m.id;
+            const prefMet = m.preference && members.find(x => x.id === m.preference);
+            return `
+              <div class="group-member" draggable="true" data-action="drag-member" data-id="${m.id}" data-group="${grp.id}">
+                <span>${esc(m.name)}</span>
+                <span style="display:flex; align-items:center; gap:6px;">
+                  ${mutual && prefMet ? '<span class="mutual-tag">MUTUAL ✓</span>' : prefMet ? '<span class="mutual-tag">✓</span>' : ''}
+                  <select class="move-member-select" data-member="${m.id}" data-from="${grp.id}" style="font-size:12px; padding:4px 6px; border-radius:3px; border:1px solid var(--line); background:#fff;">
+                    <option value="">Move to...</option>
+                    ${state.groups.filter(g2 => g2.id !== grp.id).map(g2 => `<option value="${g2.id}">${esc(g2.flag ? g2.flag + ' ' : '')}${esc(g2.name)}</option>`).join('')}
+                  </select>
+                </span>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ---------------- ACTIONS ----------------
+  function attachHandlers() {
+    document.querySelectorAll('[data-action]').forEach(el => {
+      const action = el.getAttribute('data-action');
+      if (!action) return;
+
+      if (action === 'group-dropzone') {
+        el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('dragover'); });
+        el.addEventListener('dragleave', e => { el.classList.remove('dragover'); });
+        el.addEventListener('drop', e => {
+          e.preventDefault();
+          el.classList.remove('dragover');
+          const targetGroup = el.getAttribute('data-group');
+          if (draggedMemberId && draggedFromGroup) {
+            moveMember(draggedMemberId, draggedFromGroup, targetGroup);
+          }
+        });
+        return;
+      }
+
+      if (action === 'drag-member') {
+        el.addEventListener('dragstart', e => {
+          draggedMemberId = el.getAttribute('data-id');
+          draggedFromGroup = el.getAttribute('data-group');
+          el.classList.add('dragging');
+        });
+        el.addEventListener('dragend', e => { el.classList.remove('dragging'); });
+        return;
+      }
+
+      el.addEventListener('click', () => handleAction(action, el));
+    });
+
+    document.querySelectorAll('.admin-rsvp-select').forEach(sel => {
+      sel.addEventListener('change', () => {
+        const guest = state.guests.find(g => g.id === sel.getAttribute('data-id'));
+        if (guest) {
+          guest.rsvp = sel.value || null;
+          applyVoidLogic();
+          saveState();
+          render();
+        }
+      });
+    });
+
+    document.querySelectorAll('.admin-gender-select').forEach(sel => {
+      sel.addEventListener('change', () => {
+        const guest = state.guests.find(g => g.id === sel.getAttribute('data-id'));
+        if (guest) {
+          guest.gender = sel.value || null;
+          saveState();
+          render();
+        }
+      });
+    });
+
+    document.querySelectorAll('.admin-pref-select').forEach(sel => {
+      sel.addEventListener('change', () => {
+        const guest = state.guests.find(g => g.id === sel.getAttribute('data-id'));
+        if (guest) {
+          guest.preference = sel.value || null;
+          saveState();
+          render();
+        }
+      });
+    });
+
+    document.querySelectorAll('.move-member-select').forEach(sel => {
+      sel.addEventListener('change', () => {
+        const memberId = sel.getAttribute('data-member');
+        const fromGroup = sel.getAttribute('data-from');
+        const toGroup = sel.value;
+        if (toGroup) {
+          moveMember(memberId, fromGroup, toGroup);
+        }
+      });
+    });
+
+    // Group name/flag now save via explicit "Save" button (see save-group-name action)
+    // rather than on blur, which is unreliable on mobile.
+
+    const newGuestInput = document.getElementById('new-guest-input');
+    if (newGuestInput) {
+      newGuestInput.addEventListener('keydown', e => { if (e.key === 'Enter') handleAction('add-guest'); });
+    }
+    const newRuleText = document.getElementById('new-rule-text');
+    if (newRuleText) {
+      newRuleText.addEventListener('keydown', e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleAction('add-rule'); });
+    }
+    const adminPassInput = document.getElementById('admin-pass-input');
+    if (adminPassInput) {
+      adminPassInput.addEventListener('keydown', e => { if (e.key === 'Enter') handleAction('try-admin-login'); });
+      adminPassInput.focus();
+    }
+  }
+
+  function moveMember(memberId, fromGroupId, toGroupId) {
+    if (fromGroupId === toGroupId) return;
+    const fromGrp = state.groups.find(g => g.id === fromGroupId);
+    const toGrp = state.groups.find(g => g.id === toGroupId);
+    if (!fromGrp || !toGrp) return;
+    fromGrp.memberIds = fromGrp.memberIds.filter(id => id !== memberId);
+    if (!toGrp.memberIds.includes(memberId)) toGrp.memberIds.push(memberId);
+    draggedMemberId = null;
+    draggedFromGroup = null;
+    saveState();
+    render();
+  }
+
+  function handleAction(action, el) {
+    switch(action) {
+      case 'go-landing': view = 'landing'; render(); break;
+      case 'go-guest-select': view = 'guestSelect'; render(); break;
+      case 'go-admin-login': view = 'adminLogin'; render(); break;
+      case 'select-guest':
+        currentGuestId = el.getAttribute('data-id');
+        view = 'guestHome';
+        render();
+        break;
+      case 'go-guest-home': view = 'guestHome'; render(); break;
+      case 'go-rsvp': view = 'guestRSVP'; render(); break;
+      case 'go-pref': view = 'guestPref'; render(); break;
+      case 'go-rules': view = 'rulesView'; render(); break;
+      case 'go-my-team': {
+        view = 'myTeam';
+        render();
+        const guest = state.guests.find(g => g.id === currentGuestId);
+        if (guest && isRevealed() && findMyGroup(guest.id)) confettiBurst();
+        break;
+      }
+      case 'set-rsvp': {
+        if (isLocked()) return;
+        const guest = state.guests.find(g => g.id === currentGuestId);
+        const newVal = el.getAttribute('data-val');
+        guest.rsvp = newVal;
+        applyVoidLogic();
+        saveState();
+        view = 'guestHome';
+        render();
+        if (newVal === 'going') confettiBurst();
+        break;
+      }
+      case 'set-pref': {
+        if (isLocked()) return;
+        const guest = state.guests.find(g => g.id === currentGuestId);
+        guest.preference = el.getAttribute('data-id');
+        saveState();
+        render();
+        break;
+      }
+      case 'clear-pref': {
+        if (isLocked()) return;
+        const guest = state.guests.find(g => g.id === currentGuestId);
+        guest.preference = null;
+        saveState();
+        render();
+        break;
+      }
+      case 'try-admin-login': {
+        const val = document.getElementById('admin-pass-input').value;
+        if (val === ADMIN_PASS) {
+          adminUnlocked = true;
+          view = 'adminHome';
+          render();
+        } else {
+          document.getElementById('admin-login-error').style.display = 'block';
+        }
+        break;
+      }
+      case 'admin-logout':
+        adminUnlocked = false;
+        view = 'landing';
+        render();
+        break;
+      case 'save-event-details': {
+        state.eventName = document.getElementById('event-name-input').value || 'Winter Drinking Olympics 2026';
+        state.slogan = document.getElementById('event-slogan-input').value;
+        state.eventDate = document.getElementById('event-date-input').value;
+        state.eventStartTime = document.getElementById('event-time-input').value;
+        state.rsvpDueDate = document.getElementById('rsvp-due-input').value;
+        state.revealDate = document.getElementById('reveal-date-input').value;
+        saveState();
+        render();
+        break;
+      }
+      case 'add-guest': {
+        const input = document.getElementById('new-guest-input');
+        const genderSelect = document.getElementById('new-guest-gender');
+        const name = input.value.trim();
+        const gender = genderSelect ? genderSelect.value : '';
+        if (name) {
+          state.guests.push({ id: uid(), name, rsvp: null, preference: null, gender: gender || null });
+          saveState();
+          render();
+        }
+        break;
+      }
+      case 'remove-guest': {
+        const id = el.getAttribute('data-id');
+        state.guests = state.guests.filter(g => g.id !== id);
+        state.guests.forEach(g => { if (g.preference === id) g.preference = null; });
+        state.groups.forEach(grp => { grp.memberIds = grp.memberIds.filter(mid => mid !== id); });
+        state._deletedGuestIds = (state._deletedGuestIds || []).concat(id);
+        saveState();
+        render();
+        break;
+      }
+      case 'generate-groups': {
+        const size = parseInt(document.getElementById('group-size-input').value, 10) || 4;
+        state.groupSize = size;
+        generateGroups(size);
+        saveState();
+        render();
+        break;
+      }
+      case 'remove-group': {
+        const id = el.getAttribute('data-id');
+        state.groups = state.groups.filter(g => g.id !== id);
+        saveState();
+        render();
+        break;
+      }
+      case 'save-group-name': {
+        const id = el.getAttribute('data-id');
+        const grp = state.groups.find(g => g.id === id);
+        const nameInput = document.querySelector(`.group-name-input[data-id="${id}"]`);
+        const flagInput = document.querySelector(`.group-flag-input[data-id="${id}"]`);
+        if (grp) {
+          if (nameInput) grp.name = nameInput.value || grp.name;
+          if (flagInput) grp.flag = flagInput.value;
+          saveState();
+          render();
+        }
+        break;
+      }
+      case 'add-empty-group': {
+        state.groups.push({ id: uid(), name: `Group ${state.groups.length + 1}`, flag: '', memberIds: [] });
+        saveState();
+        render();
+        break;
+      }
+      case 'add-rule': {
+        const titleInput = document.getElementById('new-rule-title');
+        const textInput = document.getElementById('new-rule-text');
+        const title = titleInput.value.trim();
+        const text = textInput.value.trim();
+        if (title || text) {
+          state.rules.push({ id: uid(), title: title || 'Untitled Rule', text });
+          saveState();
+          render();
+        }
+        break;
+      }
+      case 'remove-rule': {
+        const id = el.getAttribute('data-id');
+        state.rules = state.rules.filter(r => r.id !== id);
+        saveState();
+        render();
+        break;
+      }
+      case 'copy-guest-summary': {
+        const goingNames = state.guests.filter(g => g.rsvp === 'going').sort((a,b)=>a.name.localeCompare(b.name)).map(g => g.name);
+        const notGoingNames = state.guests.filter(g => g.rsvp === 'notgoing').sort((a,b)=>a.name.localeCompare(b.name)).map(g => g.name);
+        const pendingNames = state.guests.filter(g => !g.rsvp).sort((a,b)=>a.name.localeCompare(b.name)).map(g => g.name);
+        let text = `${state.eventName} — RSVP Summary\n\n`;
+        text += `GOING (${goingNames.length}):\n${goingNames.length ? goingNames.map(n => '• ' + n).join('\n') : '—'}\n\n`;
+        text += `NOT GOING (${notGoingNames.length}):\n${notGoingNames.length ? notGoingNames.map(n => '• ' + n).join('\n') : '—'}\n\n`;
+        text += `NO RESPONSE YET (${pendingNames.length}):\n${pendingNames.length ? pendingNames.map(n => '• ' + n).join('\n') : '—'}`;
+        copyToClipboard(text);
+        break;
+      }
+      case 'copy-groups-summary': {
+        let text = `${esc(state.eventName).replace(/&amp;/g,'&')} — Teams\n\n`;
+        state.groups.forEach((grp, i) => {
+          const members = grp.memberIds.map(id => state.guests.find(g => g.id === id)).filter(Boolean);
+          text += `${grp.flag ? grp.flag + ' ' : ''}${grp.name} (${members.length}):\n`;
+          text += members.length ? members.map(m => '• ' + m.name).join('\n') : '—';
+          text += '\n\n';
+        });
+        copyToClipboard(text.trim());
+        break;
+      }
+    }
+  }
+
+  function copyToClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('Copied to clipboard');
+      }).catch(() => {
+        fallbackCopy(text);
+      });
+    } else {
+      fallbackCopy(text);
+    }
+  }
+
+  function fallbackCopy(text) {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      showToast('Copied to clipboard');
+    } catch(e) {
+      showToast('Could not copy — try manually selecting text', true);
+    }
+  }
+
+  function generateGroups(size) {
+    const going = state.guests.filter(g => g.rsvp === 'going');
+    if (going.length === 0) { state.groups = []; return; }
+
+    const numGroups = Math.max(1, Math.ceil(going.length / size));
+    const existing = state.groups;
+    const groups = Array.from({length: numGroups}, (_, i) => ({
+      id: existing[i] ? existing[i].id : uid(),
+      name: existing[i] ? existing[i].name : `Group ${i+1}`,
+      flag: existing[i] ? existing[i].flag : '',
+      memberIds: []
+    }));
+
+    const placed = new Set();
+    const idToGuest = {};
+    going.forEach(g => idToGuest[g.id] = g);
+
+    function genderCounts(group) {
+      let m = 0, f = 0;
+      group.memberIds.forEach(id => {
+        const gnd = idToGuest[id] && idToGuest[id].gender;
+        if (gnd === 'M') m++;
+        else if (gnd === 'F') f++;
+      });
+      return { m, f };
+    }
+
+    // Picks the best group for a guest: prioritizes groups with room, then
+    // (as a secondary, best-effort factor) groups that are short on this
+    // guest's gender relative to the other gender, then smallest group overall.
+    function placeInBestGroup(id) {
+      const guest = idToGuest[id];
+      const openGroups = groups.filter(g => g.memberIds.length < size);
+      const pool = openGroups.length ? openGroups : groups;
+
+      if (guest && guest.gender) {
+        pool.sort((a, b) => {
+          const ca = genderCounts(a), cb = genderCounts(b);
+          const aOwn = guest.gender === 'M' ? ca.m : ca.f;
+          const aOther = guest.gender === 'M' ? ca.f : ca.m;
+          const bOwn = guest.gender === 'M' ? cb.m : cb.f;
+          const bOther = guest.gender === 'M' ? cb.f : cb.m;
+          const aBalance = aOwn - aOther; // lower = this group needs this gender more
+          const bBalance = bOwn - bOther;
+          if (aBalance !== bBalance) return aBalance - bBalance;
+          return a.memberIds.length - b.memberIds.length; // tiebreak: smallest group
+        });
+      } else {
+        pool.sort((a, b) => a.memberIds.length - b.memberIds.length);
+      }
+      const target = pool[0] || groups[0];
+      target.memberIds.push(id);
+      placed.add(id);
+    }
+
+    // First pass: place mutual/one-directional preference pairs together.
+    // Pairs are kept together regardless of gender — preference always wins over balance.
+    going.forEach(g => {
+      if (placed.has(g.id)) return;
+      if (g.preference && idToGuest[g.preference] && idToGuest[g.preference].rsvp === 'going' && !placed.has(g.preference)) {
+        groups.sort((a,b) => a.memberIds.length - b.memberIds.length);
+        const target = groups.find(g2 => g2.memberIds.length + 2 <= size) || groups.find(g2 => g2.memberIds.length < size) || groups[0];
+        target.memberIds.push(g.id);
+        placed.add(g.id);
+        if (!placed.has(g.preference)) {
+          target.memberIds.push(g.preference);
+          placed.add(g.preference);
+        }
+      }
+    });
+
+    // Second pass: place everyone remaining, balancing group sizes first and
+    // gender second (best effort — won't override the size constraint above).
+    going.forEach(g => {
+      if (!placed.has(g.id)) placeInBestGroup(g.id);
+    });
+
+    state.groups = groups;
+  }
+
+  function initSnowfall() {
+    const container = document.getElementById('snowfall');
+    if (!container) return;
+    const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion) return;
+    const flakes = ['❄', '❅', '❆'];
+    const count = 16;
+    let html = '';
+    for (let i = 0; i < count; i++) {
+      const left = Math.random() * 100;
+      const duration = 9 + Math.random() * 10;
+      const delay = Math.random() * 10;
+      const size = 10 + Math.random() * 12;
+      const drift = (Math.random() * 60 - 30) + 'px';
+      const flake = flakes[Math.floor(Math.random() * flakes.length)];
+      html += `<span style="left:${left}%; font-size:${size}px; animation-duration:${duration}s; animation-delay:-${delay}s; --drift:${drift};">${flake}</span>`;
+    }
+    container.innerHTML = html;
+  }
+
+  loadState();
+  initSnowfall();
+})();
+</script>
+</body>
+</html>
