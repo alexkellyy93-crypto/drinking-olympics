@@ -1152,9 +1152,10 @@
             const others = state.guests.filter(o => o.id !== g.id).sort((a,b)=>a.name.localeCompare(b.name));
             return `
             <div class="admin-row" style="flex-wrap:wrap; align-items:flex-start; padding:12px 0;">
-              <div class="who" style="flex:1 1 100%; margin-bottom:8px;">
-                <div class="nm">${esc(g.name)}</div>
-              </div>
+            <div class="who" style="flex:1 1 100%; margin-bottom:8px;">
+  <div class="nm">${esc(g.name)}</div>
+  <div class="pref-note">Prefers: ${pref ? esc(pref.name) : 'none'}</div>
+</div>       
               <div style="display:flex; gap:8px; flex-wrap:wrap; width:100%; align-items:center;">
                 <select class="admin-rsvp-select" data-id="${g.id}" style="font-size:12.5px; padding:6px 8px; border-radius:3px; border:1px solid var(--line);">
                   <option value="" ${!g.rsvp ? 'selected' : ''}>Pending</option>
@@ -1212,15 +1213,26 @@
 
         ${state.rules.length === 0 ? `<div class="empty-state" style="padding:18px 0 0;">No rules added yet.</div>` : `
         <div style="margin-top:18px;">
-          ${state.rules.map((r, i) => `
-            <div class="admin-row" style="align-items:flex-start;">
-              <div class="who">
-                <div class="nm">${i+1}. ${esc(r.title)}</div>
-                <div class="pref-note">${esc(r.text)}</div>
-              </div>
-              <button class="icon-btn" data-action="remove-rule" data-id="${r.id}" title="Remove rule">✕</button>
-            </div>
-          `).join('')}
+     ${state.rules.map((r, i) => `
+  <div class="admin-row" style="align-items:flex-start;">
+    <div class="who" style="flex:1 1 100%;">
+      <div class="field" style="margin-bottom:8px;">
+        <label class="field-label">Rule Title</label>
+        <input type="text" class="rule-title-input" data-id="${r.id}" value="${esc(r.title)}">
+      </div>
+      <div class="field" style="margin-bottom:8px;">
+        <label class="field-label">Rule Text</label>
+        <input type="text" class="rule-text-input" data-id="${r.id}" value="${esc(r.text)}">
+      </div>
+    </div>
+    <div class="btn-row" style="width:100%; justify-content:flex-end;">
+      <button class="icon-btn" data-action="move-rule-up" data-id="${r.id}" title="Move rule up">↑</button>
+      <button class="icon-btn" data-action="move-rule-down" data-id="${r.id}" title="Move rule down">↓</button>
+      <button class="icon-btn" data-action="save-rule" data-id="${r.id}" title="Save rule">✓</button>
+      <button class="icon-btn" data-action="remove-rule" data-id="${r.id}" title="Remove rule">✕</button>
+    </div>
+  </div>
+`).join('')}
         </div>
         `}
       </div>
@@ -1523,6 +1535,39 @@
         render();
         break;
       }
+        case 'save-rule': {
+  const id = el.getAttribute('data-id');
+  const rule = state.rules.find(r => r.id === id);
+  const titleInput = document.querySelector(`.rule-title-input[data-id="${id}"]`);
+  const textInput = document.querySelector(`.rule-text-input[data-id="${id}"]`);
+  if (rule) {
+    rule.title = titleInput ? titleInput.value.trim() : rule.title;
+    rule.text = textInput ? textInput.value.trim() : rule.text;
+    saveState();
+    render();
+  }
+  break;
+}
+case 'move-rule-up': {
+  const id = el.getAttribute('data-id');
+  const idx = state.rules.findIndex(r => r.id === id);
+  if (idx > 0) {
+    [state.rules[idx - 1], state.rules[idx]] = [state.rules[idx], state.rules[idx - 1]];
+    saveState();
+    render();
+  }
+  break;
+}
+case 'move-rule-down': {
+  const id = el.getAttribute('data-id');
+  const idx = state.rules.findIndex(r => r.id === id);
+  if (idx < state.rules.length - 1) {
+    [state.rules[idx + 1], state.rules[idx]] = [state.rules[idx], state.rules[idx + 1]];
+    saveState();
+    render();
+  }
+  break;
+}
       case 'copy-guest-summary': {
         const goingNames = state.guests.filter(g => g.rsvp === 'going').sort((a,b)=>a.name.localeCompare(b.name)).map(g => g.name);
         const notGoingNames = state.guests.filter(g => g.rsvp === 'notgoing').sort((a,b)=>a.name.localeCompare(b.name)).map(g => g.name);
