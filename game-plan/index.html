@@ -649,11 +649,11 @@
     </button>
   </div>
   <h1 class="display">Find every game<br>on the <span class="accent">road.</span></h1>
-  <p>Pick your leagues, confirm your stops, and this pulls real schedules for LA, New York, Dallas and Toronto — plus anything worth a short drive while you're there.</p>
+  <p>Pick your leagues, confirm your stops, and this pulls real schedules for LA, New York, Toronto, Austin and Dallas — plus anything worth a short drive while you're there.</p>
   <div class="score-strip">
     <div class="seg">HOME <b>LOS ANGELES</b></div>
-    <div class="seg">AWAY <b>NYC · DALLAS · TORONTO</b></div>
-    <div class="seg">SEASON <b>26 DEC – 19 JAN</b></div>
+    <div class="seg">AWAY <b>NYC · TORONTO · AUSTIN · DALLAS</b></div>
+    <div class="seg">SEASON <b>27 DEC – 18 JAN</b></div>
   </div>
 </header>
 
@@ -1708,6 +1708,7 @@ const db = getFirestore(fbApp);
   }
   function setSyncDot(state){ // 'live' | 'off' | ''
     syncDot.className = 'sync-dot' + (state ? ' '+state : '');
+    syncLabel.textContent = state==='live' ? 'Live' : state==='off' ? 'Offline' : 'Not shared';
   }
 
   function currentPayload(){
@@ -1775,6 +1776,7 @@ const db = getFirestore(fbApp);
   function subscribeToPlan(id){
     if(unsubPlan) unsubPlan();
     setSyncDot('');
+    syncLabel.textContent = 'Connecting…';
     setSyncStatus('Connecting to shared plan…');
     unsubPlan = onSnapshot(doc(db,'gameplans',id), snap=>{
       if(snap.exists()){
@@ -1870,6 +1872,8 @@ const db = getFirestore(fbApp);
         setSyncStatus('Your browser blocked the sign-in popup — allow popups for this site and try again.', 'err');
       } else if(err.code === 'auth/popup-closed-by-user'){
         setSyncStatus('Sign-in cancelled.');
+      } else if(err.code === 'auth/unauthorized-domain'){
+        setSyncStatus(`Google sign-in isn't enabled for ${location.hostname} yet — add it in Firebase console → Authentication → Settings → Authorized domains.`, 'err');
       } else {
         setSyncStatus(`Google sign-in failed — ${err.message}`, 'err');
       }
