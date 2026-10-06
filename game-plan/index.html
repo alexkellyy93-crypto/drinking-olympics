@@ -1,0 +1,1864 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Game Plan — Find games on your trip</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --night:#0B1220;
+    --night-2:#121B2E;
+    --night-3:#182238;
+    --cream:#F3ECD9;
+    --amber:#F5A623;
+    --amber-dim:#8A6321;
+    --turf:#2F8F5B;
+    --turf-dim:#1c5a38;
+    --red:#E1483B;
+    --slate:#8592A6;
+    --line: rgba(243,236,217,0.14);
+    --btn-text: var(--night);
+    --on-accent:#1A1000;
+  }
+  [data-theme="light"]{
+    --night:#F3EFE3;
+    --night-2:#FFFFFF;
+    --night-3:#EAE4D3;
+    --cream:#211C12;
+    --amber:#D9840F;
+    --amber-dim:#F0C98A;
+    --turf:#1F7A4D;
+    --turf-dim:#c9e8d7;
+    --red:#C23B2E;
+    --slate:#6B6252;
+    --line: rgba(33,28,18,0.14);
+    --btn-text: #ffffff;
+    --on-accent:#1A1000;
+  }
+  [data-theme="light"] body{
+    background:
+      radial-gradient(ellipse 900px 500px at 15% -10%, rgba(217,132,15,0.10), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 100% 0%, rgba(31,122,77,0.07), transparent 55%),
+      var(--night);
+  }
+  [data-theme="light"] .itin-strip{
+    background:linear-gradient(0deg, var(--night) 70%, transparent);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse 900px 500px at 15% -10%, rgba(245,166,35,0.10), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 100% 0%, rgba(47,143,91,0.08), transparent 55%),
+      var(--night);
+    color:var(--cream);
+    font-family:'Inter', sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:'Space Mono', monospace;}
+  .display{font-family:'Oswald', sans-serif; text-transform:uppercase;}
+
+  /* ---------- top / hero ---------- */
+  header.hero{
+    padding:48px 24px 28px;
+    max-width:1080px;
+    margin:0 auto;
+    border-bottom:1px solid var(--line);
+  }
+  .eyebrow{
+    font-family:'Space Mono', monospace;
+    font-size:12px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:var(--amber);
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .hero-top{
+    display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+  }
+  .theme-toggle{
+    display:inline-flex; align-items:center; gap:8px;
+    background:var(--night-2); border:1px solid var(--line); color:var(--cream);
+    padding:8px 14px; border-radius:999px; cursor:pointer;
+    font-family:'Space Mono', monospace; font-size:11px; letter-spacing:.06em; text-transform:uppercase;
+  }
+  .theme-toggle:hover{border-color:var(--amber);}
+  .theme-toggle .tt-icon{font-size:13px; color:var(--amber);}
+  .eyebrow::before{
+    content:"";
+    width:22px;height:2px;background:var(--amber);display:inline-block;
+  }
+  h1.display{
+    font-size:clamp(34px,6vw,58px);
+    font-weight:700;
+    line-height:0.98;
+    letter-spacing:0.01em;
+    margin:14px 0 12px;
+  }
+  h1.display .accent{color:var(--amber);}
+  .hero p{
+    color:var(--slate);
+    font-size:16px;
+    line-height:1.55;
+    max-width:640px;
+    margin:0;
+  }
+  .score-strip{
+    display:flex;
+    gap:0;
+    margin-top:26px;
+    border:1px solid var(--line);
+    border-radius:4px;
+    overflow:hidden;
+    font-family:'Space Mono', monospace;
+    font-size:12px;
+  }
+  .score-strip .seg{
+    padding:10px 16px;
+    border-right:1px solid var(--line);
+    color:var(--slate);
+  }
+  .score-strip .seg:last-child{border-right:none;}
+  .score-strip .seg b{color:var(--cream); font-weight:700;}
+
+  main{max-width:1080px; margin:0 auto; padding:36px 24px 90px;}
+
+  section.block{margin-bottom:44px;}
+  .block-head{
+    display:flex; align-items:baseline; justify-content:space-between; gap:16px;
+    margin-bottom:16px; flex-wrap:wrap;
+  }
+  .block-head h2{
+    font-family:'Oswald', sans-serif; text-transform:uppercase;
+    font-size:15px; letter-spacing:.14em; color:var(--cream);
+    display:flex; align-items:center; gap:10px;
+    margin:0;
+  }
+  .block-head h2 .num{
+    color:var(--on-accent); background:var(--amber);
+    font-family:'Space Mono', monospace; font-size:11px; font-weight:700;
+    width:20px;height:20px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .block-head .hint{color:var(--slate); font-size:13px;}
+
+  /* ---------- leagues ---------- */
+  .league-grid{
+    display:flex; flex-wrap:wrap; gap:10px;
+  }
+  .league-toggle{
+    position:relative;
+  }
+  .league-toggle input{position:absolute; opacity:0; width:0; height:0;}
+  .league-toggle label{
+    display:flex; align-items:center; gap:8px;
+    padding:10px 16px;
+    border:1px solid var(--line);
+    border-radius:999px;
+    cursor:pointer;
+    font-size:13px; font-weight:600;
+    color:var(--slate);
+    transition:all .15s ease;
+    user-select:none;
+  }
+  .league-toggle input:checked + label{
+    border-color:var(--amber);
+    color:var(--on-accent);
+    background:var(--amber);
+  }
+  .league-toggle label:hover{border-color:rgba(245,166,35,0.6);}
+  .league-toggle .dot{width:7px;height:7px;border-radius:50%;background:currentColor;opacity:.6;}
+
+  /* ---------- stops ---------- */
+  .stops{display:flex; flex-direction:column; gap:10px;}
+  .stop-card{
+    display:grid;
+    grid-template-columns: 28px 1.3fr 1fr 1fr 32px;
+    gap:12px;
+    align-items:center;
+    background:var(--night-2);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:12px 14px;
+  }
+  .stop-index{
+    font-family:'Space Mono', monospace; color:var(--amber); font-size:13px; font-weight:700;
+  }
+  .stop-card select, .stop-card input[type=date]{
+    background:var(--night-3);
+    border:1px solid var(--line);
+    color:var(--cream);
+    border-radius:5px;
+    padding:8px 10px;
+    font-family:'Inter', sans-serif;
+    font-size:13px;
+    width:100%;
+    accent-color:var(--amber);
+  }
+  .stop-card select:focus, .stop-card input:focus{outline:2px solid var(--amber); outline-offset:1px;}
+  .stop-remove{
+    background:none; border:none; color:var(--slate); cursor:pointer;
+    font-size:18px; line-height:1; padding:4px;
+  }
+  .stop-remove:hover{color:var(--red);}
+  .add-stop{
+    margin-top:12px;
+    display:inline-flex; align-items:center; gap:8px;
+    background:none; border:1px dashed var(--line); color:var(--slate);
+    padding:10px 16px; border-radius:8px; cursor:pointer;
+    font-size:13px; font-weight:600;
+  }
+  .add-stop:hover{border-color:var(--amber); color:var(--amber);}
+
+  /* ---------- stop blocks with multiple date options ---------- */
+  .stop-block{
+    background:var(--night-2); border:1px solid var(--line); border-radius:8px;
+    padding:14px; margin-bottom:10px;
+  }
+  .stop-header{
+    display:flex; align-items:center; gap:12px; margin-bottom:12px;
+  }
+  .stop-header .stop-index{font-family:'Space Mono', monospace; color:var(--amber); font-size:13px; font-weight:700;}
+  .stop-header select{
+    flex:1;
+    background:var(--night-3); border:1px solid var(--line); color:var(--cream);
+    border-radius:5px; padding:8px 10px; font-family:'Inter', sans-serif; font-size:13px;
+  }
+  .stop-header select:focus{outline:2px solid var(--amber); outline-offset:1px;}
+  .opt-rows{display:flex; flex-direction:column; gap:8px; margin-bottom:10px;}
+  .opt-row{
+    display:grid; grid-template-columns: 64px 1fr 1fr 28px;
+    gap:10px; align-items:center;
+  }
+  .opt-label{
+    font-family:'Space Mono', monospace; font-size:11px; color:var(--slate); font-weight:700;
+    text-transform:uppercase;
+  }
+  .opt-row input[type=date]{
+    background:var(--night-3); border:1px solid var(--line); color:var(--cream);
+    border-radius:5px; padding:8px 10px; font-family:'Inter', sans-serif; font-size:13px; width:100%;
+  }
+  .opt-row input[type=date]:focus{outline:2px solid var(--amber); outline-offset:1px;}
+  .opt-remove, .stop-remove{
+    background:none; border:none; color:var(--slate); cursor:pointer;
+    font-size:18px; line-height:1; padding:4px;
+  }
+  .opt-remove:hover, .stop-remove:hover{color:var(--red);}
+  .add-option-btn{
+    background:none; border:1px dashed var(--line); color:var(--slate);
+    padding:7px 14px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600;
+  }
+  .add-option-btn:hover{border-color:var(--amber); color:var(--amber);}
+
+  /* ---------- date-option comparison strip ---------- */
+  .compare-strip{
+    display:flex; gap:10px; flex-wrap:wrap; margin-bottom:22px;
+  }
+  .compare-card{
+    text-align:left;
+    background:var(--night-2); border:1px solid var(--line); border-radius:8px;
+    padding:12px 16px; cursor:pointer; min-width:150px;
+    font-family:'Inter', sans-serif; color:var(--cream);
+  }
+  .compare-card.active{border-color:var(--amber); background:rgba(245,166,35,0.08);}
+  .compare-card .cc-label{
+    font-family:'Oswald',sans-serif; text-transform:uppercase; font-size:11px;
+    letter-spacing:.08em; color:var(--amber); margin-bottom:4px;
+  }
+  .compare-card .cc-dates{font-size:12px; color:var(--slate); margin-bottom:6px;}
+  .compare-card .cc-count{font-family:'Oswald',sans-serif; font-size:22px; font-weight:700;}
+  .compare-card .cc-count span{font-size:11px; font-weight:400; color:var(--slate); text-transform:uppercase;}
+  .compare-card .cc-split{font-size:11px; color:var(--slate); margin-top:2px;}
+
+  .ticket-city{
+    font-family:'Space Mono',monospace; font-size:11px; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--amber); margin-bottom:6px;
+  }
+
+  /* ---------- ticket price / link / bought tracker ---------- */
+  .ticket-tickets{
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    margin-top:12px; padding-top:12px; border-top:1px dashed var(--line);
+  }
+  .ticket-price-field{
+    display:flex; align-items:center; gap:4px;
+  }
+  .ticket-price-field .curr{color:var(--slate); font-family:'Space Mono',monospace; font-size:13px;}
+  .ticket-price-field input{
+    width:76px; background:var(--night-3); border:1px solid var(--line); color:var(--cream);
+    border-radius:5px; padding:6px 8px; font-family:'Space Mono',monospace; font-size:13px;
+  }
+  .ticket-link-field{
+    display:flex; align-items:center; gap:6px; flex:1; min-width:140px;
+  }
+  .ticket-link-field input{
+    flex:1; min-width:0; background:var(--night-3); border:1px solid var(--line); color:var(--cream);
+    border-radius:5px; padding:6px 10px; font-size:12.5px;
+  }
+  .ticket-link-field input::placeholder{color:var(--slate);}
+  .ticket-link-open{
+    color:var(--amber); text-decoration:none; font-size:16px; line-height:1;
+    padding:4px 6px; border-radius:5px; flex-shrink:0;
+  }
+  .ticket-link-open:hover{background:rgba(245,166,35,0.12);}
+  .ticket-bought-toggle{
+    display:flex; align-items:center; gap:6px; cursor:pointer;
+    font-size:12.5px; color:var(--slate); font-weight:600; user-select:none;
+    white-space:nowrap;
+  }
+  .ticket-bought-toggle input{accent-color:var(--turf); width:15px; height:15px; cursor:pointer;}
+  .ticket-bought-toggle.on{color:var(--turf);}
+  .ticket.bought{border-color:var(--turf);}
+
+  .itin-totals{
+    display:flex; gap:18px; flex-wrap:wrap; align-items:baseline;
+    font-family:'Space Mono',monospace; font-size:12.5px; color:var(--slate);
+    margin-bottom:16px;
+  }
+  .itin-totals b{color:var(--cream); font-family:'Oswald',sans-serif; font-size:16px; font-weight:700;}
+  .itin-totals .bought-figure b{color:var(--turf);}
+
+  /* ---------- drive-radius control ---------- */
+  .drive-control{
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    margin-top:8px; flex-basis:100%;
+  }
+  .drive-control label{
+    font-size:12px; color:var(--slate); white-space:nowrap;
+  }
+  .drive-control input[type=range]{
+    flex:1; min-width:120px; max-width:240px; accent-color:var(--amber); cursor:pointer;
+  }
+  .drive-control span.mono{
+    font-size:12px; color:var(--cream); white-space:nowrap; min-width:190px;
+  }
+
+  /* ---------- manual game entry ---------- */
+  .manual-add-btn{
+    display:inline-flex; align-items:center; gap:8px;
+    background:none; border:1px dashed var(--line); color:var(--slate);
+    padding:10px 16px; border-radius:8px; cursor:pointer; font-size:13px; font-weight:600;
+    margin-bottom:16px;
+  }
+  .manual-add-btn:hover{border-color:var(--amber); color:var(--amber);}
+  .manual-form{
+    background:var(--night-2); border:1px solid var(--amber-dim); border-radius:10px;
+    padding:16px; margin-bottom:18px;
+    display:grid; grid-template-columns: 1fr 1fr; gap:10px;
+  }
+  .manual-form .full{grid-column:1/-1;}
+  .manual-form label{
+    display:block; font-family:'Space Mono',monospace; font-size:10.5px; text-transform:uppercase;
+    letter-spacing:.05em; color:var(--slate); margin-bottom:4px;
+  }
+  .manual-form input, .manual-form select{
+    width:100%; background:var(--night-3); border:1px solid var(--line); color:var(--cream);
+    border-radius:6px; padding:8px 10px; font-family:'Inter',sans-serif; font-size:13px;
+  }
+  .manual-form input:focus, .manual-form select:focus{outline:2px solid var(--amber); outline-offset:1px;}
+  .manual-form-actions{
+    grid-column:1/-1; display:flex; gap:10px; margin-top:4px;
+  }
+  .manual-form-actions button{
+    border-radius:999px; padding:9px 20px; font-size:13px; font-weight:600; cursor:pointer;
+  }
+  .manual-form-actions .btn-save{background:var(--amber); border:none; color:var(--on-accent);}
+  .manual-form-actions .btn-save:hover{background:#ffb840;}
+  .manual-form-actions .btn-cancel{background:none; border:1px solid var(--line); color:var(--slate);}
+  .manual-form-error{
+    grid-column:1/-1; color:var(--red); font-size:12px; font-family:'Space Mono',monospace;
+  }
+
+  .itin-tab{margin-left:auto;}
+  .itin-tab.active{color:var(--amber);}
+
+  .quick-cal-btn{
+    background:none; border:1px solid var(--line); color:var(--cream);
+    padding:9px 16px; border-radius:999px; font-size:12.5px; cursor:pointer; font-weight:600;
+  }
+  .quick-cal-btn:hover{border-color:var(--amber); color:var(--amber);}
+
+  /* ---------- cross-device sync bar ---------- */
+  .sync-wrap{max-width:1080px; margin:0 auto; padding:0 24px;}
+  .sync-bar{
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+    background:var(--night-2); border:1px solid var(--line); border-radius:10px;
+    padding:14px 18px; margin-top:26px;
+  }
+  .sync-bar .sync-icon{font-size:16px; color:var(--amber);}
+  .sync-bar .sync-label{
+    font-family:'Space Mono',monospace; font-size:11px; text-transform:uppercase;
+    letter-spacing:.06em; color:var(--slate); white-space:nowrap;
+  }
+  .sync-bar input#syncCodeInput{
+    background:var(--night-3); border:1px solid var(--line); color:var(--cream);
+    border-radius:6px; padding:9px 12px; font-family:'Space Mono',monospace;
+    font-size:15px; letter-spacing:.12em; text-transform:uppercase; width:110px;
+  }
+  .sync-bar input#syncCodeInput:focus{outline:2px solid var(--amber); outline-offset:1px;}
+  .sync-btn{
+    background:none; border:1px solid var(--line); color:var(--cream);
+    padding:9px 14px; border-radius:6px; font-size:12.5px; cursor:pointer; font-weight:600;
+    white-space:nowrap;
+  }
+  .sync-btn:hover{border-color:var(--amber); color:var(--amber);}
+  .sync-btn.primary{background:var(--amber); border-color:var(--amber); color:var(--on-accent);}
+  .sync-btn.primary:hover{background:#ffb840;}
+  .sync-btn:disabled{opacity:.5; cursor:default;}
+  .sync-status{
+    font-family:'Space Mono',monospace; font-size:12px; color:var(--slate);
+    flex-basis:100%; margin-top:2px;
+  }
+  .sync-status.err{color:var(--red);}
+  .sync-status.ok{color:var(--turf);}
+  .sync-dot{
+    width:8px; height:8px; border-radius:50%; background:var(--slate); display:inline-block;
+    flex-shrink:0;
+  }
+  .sync-dot.live{background:var(--turf); box-shadow:0 0 0 3px rgba(47,143,91,0.18);}
+  .sync-dot.off{background:var(--red);}
+  .account-chip{
+    display:flex; align-items:center; gap:8px;
+    font-size:12.5px; color:var(--cream); font-weight:600;
+  }
+  .account-chip img{width:22px; height:22px; border-radius:50%;}
+  .myplans-panel{
+    flex-basis:100%; margin-top:8px; padding-top:10px; border-top:1px solid var(--line);
+    display:flex; flex-direction:column; gap:6px;
+  }
+  .myplans-item{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    background:var(--night-3); border:1px solid var(--line); border-radius:6px;
+    padding:8px 12px; cursor:pointer; font-size:12.5px;
+  }
+  .myplans-item:hover{border-color:var(--amber);}
+  .myplans-item .mp-label{color:var(--cream); font-weight:600;}
+  .myplans-item .mp-when{color:var(--slate); font-family:'Space Mono',monospace; font-size:11px;}
+
+  .find-btn{
+    display:inline-flex; align-items:center; gap:10px;
+    background:var(--amber); color:var(--on-accent);
+    border:none; border-radius:999px;
+    padding:15px 28px;
+    font-family:'Oswald', sans-serif; text-transform:uppercase;
+    font-size:14px; letter-spacing:.08em; font-weight:600;
+    cursor:pointer;
+    margin-top:22px;
+  }
+  .find-btn:hover{background:#ffb840;}
+  .find-btn:disabled{opacity:.5; cursor:default;}
+  .find-btn .spin{
+    width:14px;height:14px;border-radius:50%;
+    border:2px solid rgba(26,16,0,.35); border-top-color:var(--on-accent);
+    animation:spin .7s linear infinite; display:none;
+  }
+  .find-btn.loading .spin{display:inline-block;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  .status-line{
+    margin-top:14px; font-size:13px; color:var(--slate); font-family:'Space Mono', monospace;
+    min-height:18px;
+  }
+  .status-line.err{color:var(--red);}
+
+  /* ---------- tabs ---------- */
+  .tabs{
+    display:flex; gap:4px; border-bottom:1px solid var(--line); margin-bottom:24px;
+    overflow-x:auto;
+  }
+  .tab{
+    padding:12px 18px;
+    font-family:'Oswald', sans-serif; text-transform:uppercase;
+    font-size:13px; letter-spacing:.05em; font-weight:500;
+    color:var(--slate); cursor:pointer; white-space:nowrap;
+    border-bottom:2px solid transparent;
+    display:flex; align-items:center; gap:8px;
+  }
+  .tab .count{
+    font-family:'Space Mono', monospace; font-size:10px;
+    background:var(--night-3); color:var(--cream);
+    padding:2px 6px; border-radius:999px;
+  }
+  .tab.active{color:var(--amber); border-bottom-color:var(--amber);}
+  .tab.active .count{background:var(--amber); color:var(--on-accent);}
+
+  .leg-panel{display:none;}
+  .leg-panel.active{display:block;}
+
+  /* ---------- mini calendar ---------- */
+  .mini-cal{
+    display:flex; gap:14px; flex-wrap:wrap; margin-bottom:26px;
+  }
+  .cal-month{
+    background:var(--night-2); border:1px solid var(--line); border-radius:8px;
+    padding:14px; width:236px;
+  }
+  .cal-month .mname{
+    font-family:'Oswald',sans-serif; text-transform:uppercase; font-size:12px;
+    letter-spacing:.08em; color:var(--cream); margin-bottom:10px;
+  }
+  .cal-grid{
+    display:grid; grid-template-columns:repeat(7,1fr); gap:3px;
+  }
+  .cal-dow{
+    font-family:'Space Mono',monospace; font-size:9px; color:var(--slate); text-align:center; padding-bottom:3px;
+  }
+  .cal-day{
+    aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    font-size:11px; border-radius:4px; color:var(--slate); position:relative; cursor:default;
+  }
+  .cal-day.intrip{color:var(--cream); background:rgba(243,236,217,0.04);}
+  .cal-day.hasgame{cursor:pointer;}
+  .cal-day.hasgame:hover{background:rgba(245,166,35,0.15);}
+  .cal-day .dots{display:flex; gap:2px; margin-top:2px;}
+  .cal-day .dots span{width:4px;height:4px;border-radius:50%;}
+  .cal-day .dots .d-local{background:var(--turf);}
+  .cal-day .dots .d-near{background:var(--red);}
+  .cal-day.empty{visibility:hidden;}
+
+  /* ---------- agenda / ticket stubs ---------- */
+  .agenda-group{margin-bottom:22px;}
+  .agenda-date{
+    font-family:'Space Mono',monospace; font-size:12px; color:var(--amber);
+    text-transform:uppercase; letter-spacing:.08em;
+    margin:0 0 10px; padding-top:6px;
+    border-top:1px solid var(--line);
+  }
+  .agenda-group:first-child .agenda-date{border-top:none; padding-top:0;}
+
+  .ticket{
+    display:grid;
+    grid-template-columns: 1fr auto 84px;
+    align-items:stretch;
+    background:var(--night-2);
+    border:1px solid var(--line);
+    border-radius:10px;
+    overflow:hidden;
+    margin-bottom:10px;
+    position:relative;
+  }
+  .ticket.selected{border-color:var(--amber);}
+  .ticket-main{padding:16px 18px;}
+  .ticket-league{
+    display:inline-block; font-family:'Space Mono',monospace; font-size:13px; font-weight:700;
+    letter-spacing:.08em; text-transform:uppercase; color:#F5F1E4;
+    background:var(--slate); padding:5px 12px; border-radius:4px; margin-bottom:10px;
+  }
+  .ticket-league.nfl{background:#a5673f;}
+  .ticket-league.nba{background:#c9752b;}
+  .ticket-league.nhl{background:#5f88c4;}
+  .ticket-league.mls{background:#5a9e6f;}
+  .ticket-league.ncaaf{background:#b3542f;}
+  .ticket-league.ncaamb{background:#a1592f;}
+  .ticket-league.ncaawb{background:#c46a49;}
+  .ticket-league.ncaahk{background:#4f7fae;}
+  .ticket-league.manual{background:#6b5b95;}
+  .ticket-teams{
+    font-family:'Oswald', sans-serif; font-size:19px; font-weight:600; letter-spacing:.01em;
+    color:var(--cream); text-transform:none; margin-bottom:6px;
+  }
+  .ticket-meta{
+    font-size:12.5px; color:var(--slate); display:flex; gap:14px; flex-wrap:wrap;
+  }
+  .ticket-meta .tag-local{color:var(--turf); font-weight:600;}
+  .ticket-meta .tag-near{color:var(--red); font-weight:600;}
+
+  .ticket-perf{
+    width:0; border-left:2px dashed var(--line); position:relative;
+  }
+  .ticket-perf::before, .ticket-perf::after{
+    content:""; position:absolute; left:-8px; width:16px; height:16px; border-radius:50%;
+    background:var(--night);
+  }
+  .ticket-perf::before{top:-8px;}
+  .ticket-perf::after{bottom:-8px;}
+
+  .ticket-action{
+    display:flex; align-items:center; justify-content:center;
+    flex-direction:column; gap:6px;
+    background:var(--night-3);
+  }
+  .ticket-action button{
+    background:none; border:1px solid var(--line); color:var(--slate);
+    width:44px;height:44px; border-radius:50%; cursor:pointer;
+    font-size:18px; display:flex; align-items:center; justify-content:center;
+  }
+  .ticket.selected .ticket-action button{
+    background:var(--amber); border-color:var(--amber); color:var(--on-accent);
+  }
+  .ticket-action .lbl{font-family:'Space Mono',monospace; font-size:9px; color:var(--slate); text-transform:uppercase;}
+
+  .empty-note{
+    color:var(--slate); font-size:13.5px; padding:18px 0; font-style:italic;
+  }
+
+  /* ---------- my itinerary summary ---------- */
+  .itin-strip{
+    position:sticky; bottom:0; left:0; right:0;
+    background:linear-gradient(0deg, var(--night) 70%, transparent);
+    padding-top:26px;
+  }
+  .itin-bar{
+    display:flex; align-items:center; justify-content:space-between;
+    background:var(--night-2); border:1px solid var(--amber-dim);
+    border-radius:12px; padding:14px 20px; gap:16px; flex-wrap:wrap;
+  }
+  .itin-bar .left{display:flex; align-items:center; gap:12px;}
+  .itin-count{
+    font-family:'Oswald',sans-serif; font-size:26px; color:var(--amber); font-weight:700;
+  }
+  .itin-bar .label{font-size:12.5px; color:var(--slate); text-transform:uppercase; letter-spacing:.06em;}
+  .itin-btn{
+    background:none; border:1px solid var(--line); color:var(--cream);
+    padding:9px 16px; border-radius:999px; font-size:12.5px; cursor:pointer; font-weight:600;
+  }
+  .itin-btn:hover{border-color:var(--amber);}
+
+  footer{
+    max-width:1080px; margin:0 auto; padding:20px 24px 50px;
+    color:var(--slate); font-size:12px; font-family:'Space Mono',monospace;
+  }
+  footer a{color:var(--amber);}
+
+  @media (max-width:640px){
+    .stop-card{grid-template-columns: 1fr; }
+    .stop-index{display:none;}
+    .opt-row{grid-template-columns: 44px 1fr 1fr 24px;}
+    .ticket{grid-template-columns:1fr auto 60px;}
+    .ticket-teams{font-size:16px;}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .find-btn .spin{animation:none;}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-top">
+    <div class="eyebrow">Game Plan · winter usa trip</div>
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle light and dark mode">
+      <span class="tt-icon">☾</span><span class="tt-label">Dark</span>
+    </button>
+  </div>
+  <h1 class="display">Find every game<br>on the <span class="accent">road.</span></h1>
+  <p>Pick your leagues, confirm your stops, and this pulls real schedules for LA, New York, Dallas and Toronto — plus anything worth a short drive while you're there.</p>
+  <div class="score-strip">
+    <div class="seg">HOME <b>LOS ANGELES</b></div>
+    <div class="seg">AWAY <b>NYC · DALLAS · TORONTO</b></div>
+    <div class="seg">SEASON <b>26 DEC – 19 JAN</b></div>
+  </div>
+</header>
+
+<div class="sync-wrap">
+  <div class="sync-bar">
+    <span class="sync-dot" id="syncDot"></span>
+    <span class="sync-label" id="syncLabel">Connecting…</span>
+    <button class="sync-btn primary" id="syncShareBtn" style="display:none;">Copy share link</button>
+    <button class="sync-btn" id="syncGoogleBtn">Sign in with Google</button>
+    <span class="account-chip" id="accountChip" style="display:none;"></span>
+    <button class="sync-btn" id="myPlansBtn" style="display:none;">My plans</button>
+    <button class="sync-btn" id="syncSignOutBtn" style="display:none;">Sign out</button>
+    <div class="sync-status" id="syncStatus">This plan syncs live to anyone with the link. Sign in with Google to find it again without one.</div>
+    <div class="myplans-panel" id="myPlansPanel" style="display:none;"></div>
+  </div>
+</div>
+
+<main>
+
+  <section class="block">
+    <div class="block-head">
+      <h2><span class="num">1</span>Leagues to include</h2>
+      <span class="hint">Off-season leagues will just come back empty</span>
+    </div>
+    <div class="league-grid" id="leagueGrid"></div>
+  </section>
+
+  <section class="block">
+    <div class="block-head">
+      <h2><span class="num">2</span>Your stops</h2>
+      <span class="hint">Edit the dates — placeholders on your real route. Add alternate dates per stop to compare.</span>
+    </div>
+    <div class="stops" id="stopsList"></div>
+    <button class="add-stop" id="addStopBtn">+ Add another stop</button>
+    <br>
+    <button class="find-btn" id="findBtn">
+      <span class="spin"></span>
+      <span id="findBtnLabel">Find games</span>
+    </button>
+    <div class="status-line" id="statusLine"></div>
+  </section>
+
+  <section class="block" id="resultsBlock">
+    <div class="block-head">
+      <h2><span class="num">3</span>Your matchups</h2>
+      <span class="hint"><span style="color:var(--turf)">●</span> in-city &nbsp; <span style="color:var(--red)">●</span> short drive away</span>
+    </div>
+    <div class="tabs" id="tabs"></div>
+    <div id="legPanels"></div>
+  </section>
+
+</main>
+
+<div class="itin-strip">
+  <div class="itin-bar" style="max-width:1032px;margin:0 auto;">
+    <div class="left">
+      <div class="itin-count" id="itinCount">0</div>
+      <div class="label">games added<br>to your itinerary</div>
+    </div>
+    <div style="display:flex; gap:10px;">
+      <button class="quick-cal-btn" id="viewCalBtn">View itinerary calendar</button>
+      <button class="itin-btn" id="clearItinBtn">Clear selections</button>
+    </div>
+  </div>
+</div>
+
+<footer>
+  Schedules pulled live from ESPN's public scoreboard feeds — occasionally a league's data is briefly unavailable, just hit "Find games" again. Your selections are saved in this browser only.
+</footer>
+
+<script type="module">
+// ---------------- Firebase (auth + realtime sync) ----------------
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js';
+import {
+  getAuth, signInAnonymously, GoogleAuthProvider, signInWithPopup, linkWithPopup,
+  onAuthStateChanged, signOut,
+} from 'https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js';
+import {
+  getFirestore, doc, setDoc, getDoc, onSnapshot, collection, query, orderBy, getDocs,
+  serverTimestamp,
+} from 'https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBB9yNZAvsdUVX2gCivopsteoIDxBCQ6Hk",
+  authDomain: "usa-game-planner.firebaseapp.com",
+  projectId: "usa-game-planner",
+  storageBucket: "usa-game-planner.firebasestorage.app",
+  messagingSenderId: "352640287451",
+  appId: "1:352640287451:web:3986962aa4857802edc2fe",
+  measurementId: "G-0SB07CH2NY"
+};
+const fbApp = initializeApp(firebaseConfig);
+const auth = getAuth(fbApp);
+const db = getFirestore(fbApp);
+
+(function(){
+
+  // ---------------- theme ----------------
+  const THEME_KEY = 'gameplan_theme_v1';
+  function applyTheme(theme){
+    document.documentElement.setAttribute('data-theme', theme);
+    const btn = document.getElementById('themeToggle');
+    if(btn){
+      btn.querySelector('.tt-icon').textContent = theme==='light' ? '☀' : '☾';
+      btn.querySelector('.tt-label').textContent = theme==='light' ? 'Light' : 'Dark';
+    }
+  }
+  const savedTheme = localStorage.getItem(THEME_KEY)
+    || (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  applyTheme(savedTheme);
+  document.getElementById('themeToggle').addEventListener('click', ()=>{
+    const next = document.documentElement.getAttribute('data-theme')==='light' ? 'dark' : 'light';
+    localStorage.setItem(THEME_KEY, next);
+    applyTheme(next);
+  });
+
+  // ---------------- data ----------------
+
+  const LEAGUES = [
+    { id:'nfl',    label:'NFL',              path:'football/nfl',                default:true },
+    { id:'nba',    label:'NBA',              path:'basketball/nba',              default:true },
+    { id:'nhl',    label:'NHL',              path:'hockey/nhl',                  default:true },
+    { id:'ncaaf',  label:'College Football', path:'football/college-football',   default:true,  extra:'&groups=80' },
+    { id:'ncaamb', label:"Men's College Basketball", path:'basketball/mens-college-basketball', default:true, extra:'&groups=50' },
+    { id:'ncaawb', label:"Women's College Basketball", path:'basketball/womens-college-basketball', default:false, extra:'&groups=50' },
+    { id:'ncaahk', label:"College Hockey",  path:'hockey/mens-college-hockey',   default:false },
+    { id:'mls',    label:'MLS',              path:'soccer/usa.1',                default:false },
+  ];
+  // ESPN's scoreboard endpoint quietly limits college leagues to a small
+  // "featured/ranked" slate unless a division group id is passed — groups=80 is
+  // FBS (all ~130 teams), groups=50 is Division I. Without this, most college
+  // football and basketball games in your dates just wouldn't show up at all.
+
+  // major North American pro/college sports market coordinates [lat, lng]
+  const CITY_COORDS = {
+    "Los Angeles":[34.0522,-118.2437], "Inglewood":[33.9562,-118.3390], "Anaheim":[33.8353,-117.9145],
+    "Carson":[33.8317,-118.2820], "Elysian Park":[34.0739,-118.2400],
+    "New York":[40.7128,-74.0060], "Brooklyn":[40.6782,-73.9442], "East Rutherford":[40.8135,-74.0744],
+    "Elmont":[40.7096,-73.6624], "Newark":[40.7357,-74.1724], "Uniondale":[40.7230,-73.5890],
+    "Dallas":[32.7767,-96.7970], "Arlington":[32.7357,-97.1081], "Frisco":[33.1507,-96.8236],
+    "Fort Worth":[32.7555,-97.3308],
+    "Toronto":[43.6532,-79.3832],
+    "Chicago":[41.8781,-87.6298], "Boston":[42.3601,-71.0589], "Foxborough":[42.0910,-71.2643],
+    "Philadelphia":[39.9526,-75.1652], "Washington":[38.9072,-77.0369], "Landover":[38.9077,-76.8645],
+    "Miami":[25.7617,-80.1918], "Miami Gardens":[25.9580,-80.2389],
+    "Atlanta":[33.7490,-84.3880], "Houston":[29.7604,-95.3698], "Phoenix":[33.4484,-112.0740],
+    "Glendale":[33.5387,-112.1860], "Denver":[39.7392,-104.9903], "Seattle":[47.6062,-122.3321],
+    "San Francisco":[37.7749,-122.4194], "Santa Clara":[37.3541,-121.9552], "Oakland":[37.8044,-122.2712],
+    "San Diego":[32.7157,-117.1611], "Las Vegas":[36.1699,-115.1398], "Paradise":[36.0919,-115.1467],
+    "Minneapolis":[44.9778,-93.2650], "Saint Paul":[44.9537,-93.0900], "Detroit":[42.3314,-83.0458],
+    "Cleveland":[41.4993,-81.6944], "Cincinnati":[39.1031,-84.5120], "Pittsburgh":[40.4406,-79.9959],
+    "Baltimore":[39.2904,-76.6122], "Charlotte":[35.2271,-80.8431], "Nashville":[36.1627,-86.7816],
+    "New Orleans":[29.9511,-90.0715], "Kansas City":[39.0997,-94.5786], "St. Louis":[38.6270,-90.1994],
+    "Milwaukee":[43.0389,-87.9065], "Indianapolis":[39.7684,-86.1581], "Columbus":[39.9612,-82.9988],
+    "Salt Lake City":[40.7608,-111.8910], "Portland":[45.5152,-122.6784], "Sacramento":[38.5816,-121.4944],
+    "San Antonio":[29.4241,-98.4936], "Tampa":[27.9506,-82.4572], "Orlando":[28.5383,-81.3792],
+    "Jacksonville":[30.3322,-81.6557], "Buffalo":[42.8864,-78.8784], "Montreal":[45.5019,-73.5674],
+    "Vancouver":[49.2827,-123.1207], "Ottawa":[45.4215,-75.6972], "Winnipeg":[49.8951,-97.1384],
+    "Calgary":[51.0447,-114.0719], "Edmonton":[53.5461,-113.4938], "Memphis":[35.1495,-90.0490],
+    "Oklahoma City":[35.4676,-97.5164], "Green Bay":[44.5133,-88.0133], "Tempe":[33.4255,-111.9400],
+    "College Station":[30.6280,-96.3344], "Norman":[35.2226,-97.4395], "Austin":[30.2672,-97.7431],
+    "South Bend":[41.6764,-86.2520], "Ann Arbor":[42.2808,-83.7430], "Columbia":[38.9517,-92.3341],
+  };
+
+  // IANA timezone for each city above, so game times display in the DESTINATION's
+  // local time rather than the browser's local time (e.g. Sydney).
+  const CITY_TZ = {
+    "Los Angeles":"America/Los_Angeles", "Inglewood":"America/Los_Angeles", "Anaheim":"America/Los_Angeles",
+    "Carson":"America/Los_Angeles", "Elysian Park":"America/Los_Angeles",
+    "New York":"America/New_York", "Brooklyn":"America/New_York", "East Rutherford":"America/New_York",
+    "Elmont":"America/New_York", "Newark":"America/New_York", "Uniondale":"America/New_York",
+    "Dallas":"America/Chicago", "Arlington":"America/Chicago", "Frisco":"America/Chicago",
+    "Fort Worth":"America/Chicago",
+    "Toronto":"America/Toronto",
+    "Chicago":"America/Chicago", "Boston":"America/New_York", "Foxborough":"America/New_York",
+    "Philadelphia":"America/New_York", "Washington":"America/New_York", "Landover":"America/New_York",
+    "Miami":"America/New_York", "Miami Gardens":"America/New_York",
+    "Atlanta":"America/New_York", "Houston":"America/Chicago", "Phoenix":"America/Phoenix",
+    "Glendale":"America/Phoenix", "Denver":"America/Denver", "Seattle":"America/Los_Angeles",
+    "San Francisco":"America/Los_Angeles", "Santa Clara":"America/Los_Angeles", "Oakland":"America/Los_Angeles",
+    "San Diego":"America/Los_Angeles", "Las Vegas":"America/Los_Angeles", "Paradise":"America/Los_Angeles",
+    "Minneapolis":"America/Chicago", "Saint Paul":"America/Chicago", "Detroit":"America/New_York",
+    "Cleveland":"America/New_York", "Cincinnati":"America/New_York", "Pittsburgh":"America/New_York",
+    "Baltimore":"America/New_York", "Charlotte":"America/New_York", "Nashville":"America/Chicago",
+    "New Orleans":"America/Chicago", "Kansas City":"America/Chicago", "St. Louis":"America/Chicago",
+    "Milwaukee":"America/Chicago", "Indianapolis":"America/New_York", "Columbus":"America/New_York",
+    "Salt Lake City":"America/Denver", "Portland":"America/Los_Angeles", "Sacramento":"America/Los_Angeles",
+    "San Antonio":"America/Chicago", "Tampa":"America/New_York", "Orlando":"America/New_York",
+    "Jacksonville":"America/New_York", "Buffalo":"America/New_York", "Montreal":"America/Toronto",
+    "Vancouver":"America/Vancouver", "Ottawa":"America/Toronto", "Winnipeg":"America/Winnipeg",
+    "Calgary":"America/Edmonton", "Edmonton":"America/Edmonton", "Memphis":"America/Chicago",
+    "Oklahoma City":"America/Chicago", "Green Bay":"America/Chicago", "Tempe":"America/Phoenix",
+    "College Station":"America/Chicago", "Norman":"America/Chicago", "Austin":"America/Chicago",
+    "South Bend":"America/New_York", "Ann Arbor":"America/New_York", "Columbia":"America/Chicago",
+  };
+
+  // trip route: [city, [lat,lng], arrive, depart]
+  let stopIdCounter = 0, optIdCounter = 0;
+  function newOpt(arrive, depart){ return { id:'o'+(optIdCounter++), arrive, depart }; }
+  function newStop(city, options){ return { id:'s'+(stopIdCounter++), city, options }; }
+
+  const DEFAULT_STOPS = [
+    newStop("Los Angeles", [ newOpt("2026-12-26","2026-12-30") ]),
+    newStop("New York",    [ newOpt("2026-12-31","2027-01-05") ]),
+    newStop("Dallas",      [ newOpt("2027-01-06","2027-01-10") ]),
+    newStop("Toronto",     [ newOpt("2027-01-11","2027-01-15") ]),
+    newStop("Los Angeles", [ newOpt("2027-01-16","2027-01-19") ]),
+  ];
+
+  const LOCAL_MI = 30;      // counts as "in that city"
+  const HARD_CAP_MI = 400;  // furthest we'll ever fetch/store, regardless of slider
+  const AVG_MPH = 42;       // rough driving-speed estimate for the "~X away" label
+  let maxDriveMi = 160;     // user-adjustable "worth the drive" radius
+
+  const STORAGE_KEY = 'gameplan_selected_v2'; // v2: stores full game snapshots, not just ids
+
+  // ---------------- state ----------------
+  let stops = JSON.parse(JSON.stringify(DEFAULT_STOPS));
+  let matches = {};              // stopId -> { optionId -> [games] }
+  let selectedStore = {};        // gameId -> full game snapshot (persisted)
+  try{ selectedStore = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }catch(e){ selectedStore = {}; }
+  let activeTab = stops[0] ? stops[0].id : 'itinerary';   // a stop.id, or 'itinerary'
+  let activeOptionByStop = {};   // stopId -> optionId currently being viewed
+  let manualFormOpen = false;    // whether the "add a game manually" form is showing
+
+  // ---------------- helpers ----------------
+  function haversine(a,b){
+    const R=3958.8;
+    const dLat=(b[0]-a[0])*Math.PI/180, dLon=(b[1]-a[1])*Math.PI/180;
+    const la1=a[0]*Math.PI/180, la2=b[0]*Math.PI/180;
+    const h=Math.sin(dLat/2)**2 + Math.cos(la1)*Math.cos(la2)*Math.sin(dLon/2)**2;
+    return R*2*Math.atan2(Math.sqrt(h), Math.sqrt(1-h));
+  }
+  // All date/time formatting below takes an explicit IANA timeZone (the venue's,
+  // i.e. the destination's) so games always show local-to-the-game time, never
+  // the browser's own timezone.
+  function fmtDate(iso, tz){
+    const d=new Date(iso);
+    return d.toLocaleDateString('en-US',{weekday:'short', month:'short', day:'numeric', timeZone: tz});
+  }
+  function fmtTime(iso, tz){
+    const d=new Date(iso);
+    return d.toLocaleTimeString('en-US',{hour:'numeric', minute:'2-digit', timeZone: tz});
+  }
+  // Calendar-day key (YYYY-MM-DD) as it falls in the given timezone — NOT the raw
+  // UTC date slice, since a late-night UTC game can land on a different local day.
+  function dayKeyTz(iso, tz){
+    const d = new Date(iso);
+    const parts = new Intl.DateTimeFormat('en-CA', {timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit'}).formatToParts(d);
+    const get = t => parts.find(p=>p.type===t).value;
+    return `${get('year')}-${get('month')}-${get('day')}`;
+  }
+  function fmtRangeShort(a,b){
+    if(!a || !b) return 'No dates set';
+    const da = new Date(a+'T12:00:00'), db = new Date(b+'T12:00:00');
+    const f = d => d.toLocaleDateString('en-US',{month:'short', day:'numeric'});
+    return `${f(da)} – ${f(db)}`;
+  }
+  // Converts a wall-clock date+time as it would read on a clock in `tz` into
+  // the correct UTC epoch ms — needed because manually-entered games are
+  // typed as local venue time, not UTC. One-shot DST-aware correction: guess
+  // treating the input as UTC, see what that guess actually displays as in
+  // the target zone, and shift by the difference.
+  function localWallClockToUtcMs(dateStr, timeStr, tz){
+    const [y,mo,d] = dateStr.split('-').map(Number);
+    const [hh,mm] = timeStr.split(':').map(Number);
+    const guessUtcMs = Date.UTC(y, mo-1, d, hh, mm, 0);
+    const fmt = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz, hour12:false,
+      year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit'
+    });
+    const parts = fmt.formatToParts(new Date(guessUtcMs)).reduce((a,p)=>{a[p.type]=p.value;return a;},{});
+    const shownUtcMs = Date.UTC(+parts.year, +parts.month-1, +parts.day, parts.hour==='24'?0:+parts.hour, +parts.minute, +parts.second);
+    return guessUtcMs + (guessUtcMs - shownUtcMs);
+  }
+  function esc(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  function saveSelected(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(selectedStore));
+  }
+  function isSelected(id){ return Object.prototype.hasOwnProperty.call(selectedStore, id); }
+  function toggleGame(g){
+    if(isSelected(g.id)) delete selectedStore[g.id];
+    else selectedStore[g.id] = g;
+    saveSelected();
+  }
+
+  // ---------------- render: leagues ----------------
+  const leagueGrid = document.getElementById('leagueGrid');
+  LEAGUES.forEach(lg=>{
+    const wrap = document.createElement('div');
+    wrap.className='league-toggle';
+    wrap.innerHTML = `
+      <input type="checkbox" id="lg_${lg.id}" ${lg.default?'checked':''}>
+      <label for="lg_${lg.id}"><span class="dot"></span>${lg.label}</label>
+    `;
+    leagueGrid.appendChild(wrap);
+  });
+  leagueGrid.addEventListener('change', (e)=>{
+    if(e.target.matches('input[type=checkbox]')) scheduleWrite();
+  });
+
+  // ---------------- render: stops ----------------
+  const cityOptions = Object.keys(CITY_COORDS).sort().map(c=>`<option value="${c}">${c}</option>`).join('');
+
+  function findStop(id){ return stops.find(s=>s.id===id); }
+  function findOpt(stop, id){ return stop.options.find(o=>o.id===id); }
+
+  function renderStops(){
+    const list = document.getElementById('stopsList');
+    list.innerHTML = '';
+    stops.forEach((s, i)=>{
+      const block = document.createElement('div');
+      block.className='stop-block';
+      block.innerHTML = `
+        <div class="stop-header">
+          <div class="stop-index">${String(i+1).padStart(2,'0')}</div>
+          <select class="s-city" data-stop="${s.id}">${cityOptions}</select>
+          <button class="stop-remove" data-stop="${s.id}" title="Remove stop">×</button>
+        </div>
+        <div class="opt-rows" data-stop="${s.id}">
+          ${s.options.map((o,oi)=>`
+            <div class="opt-row">
+              <span class="opt-label">${s.options.length>1?('Option '+String.fromCharCode(65+oi)):'Dates'}</span>
+              <input type="date" class="o-arrive" data-stop="${s.id}" data-opt="${o.id}" value="${o.arrive||''}">
+              <input type="date" class="o-depart" data-stop="${s.id}" data-opt="${o.id}" value="${o.depart||''}">
+              <button class="opt-remove" data-stop="${s.id}" data-opt="${o.id}" title="Remove these dates" ${s.options.length<=1?'style="visibility:hidden"':''}>×</button>
+            </div>
+          `).join('')}
+        </div>
+        <button class="add-option-btn" data-stop="${s.id}">+ Add alternate dates to compare</button>
+      `;
+      list.appendChild(block);
+      block.querySelector('.s-city').value = s.city;
+    });
+
+    list.querySelectorAll('.s-city').forEach(el=>el.addEventListener('change', e=>{
+      findStop(e.target.dataset.stop).city = e.target.value;
+      scheduleWrite();
+    }));
+    list.querySelectorAll('.stop-remove').forEach(el=>el.addEventListener('click', e=>{
+      stops = stops.filter(s=>s.id!==e.target.dataset.stop);
+      if(stops.length===0) activeTab='itinerary';
+      renderStops();
+      scheduleWrite();
+    }));
+    list.querySelectorAll('.o-arrive').forEach(el=>el.addEventListener('change', e=>{
+      findOpt(findStop(e.target.dataset.stop), e.target.dataset.opt).arrive = e.target.value;
+      scheduleWrite();
+    }));
+    list.querySelectorAll('.o-depart').forEach(el=>el.addEventListener('change', e=>{
+      findOpt(findStop(e.target.dataset.stop), e.target.dataset.opt).depart = e.target.value;
+      scheduleWrite();
+    }));
+    list.querySelectorAll('.opt-remove').forEach(el=>el.addEventListener('click', e=>{
+      const stop = findStop(e.target.dataset.stop);
+      if(stop.options.length<=1) return;
+      stop.options = stop.options.filter(o=>o.id!==e.target.dataset.opt);
+      renderStops();
+      scheduleWrite();
+    }));
+    list.querySelectorAll('.add-option-btn').forEach(el=>el.addEventListener('click', e=>{
+      findStop(e.target.dataset.stop).options.push(newOpt('',''));
+      renderStops();
+      scheduleWrite();
+    }));
+  }
+  renderStops();
+
+  document.getElementById('addStopBtn').addEventListener('click', ()=>{
+    stops.push(newStop("Los Angeles", [ newOpt('','') ]));
+    renderStops();
+    scheduleWrite();
+  });
+
+  // ---------------- fetching ----------------
+  function ymd(iso){ return iso.replaceAll('-',''); }
+
+  async function fetchLeagueForOption(league, stop, opt){
+    if(!opt.arrive || !opt.depart) return [];
+    const range = `${ymd(opt.arrive)}-${ymd(opt.depart)}`;
+    const url = `https://site.api.espn.com/apis/site/v2/sports/${league.path}/scoreboard?dates=${range}${league.extra||''}`;
+    let json;
+    try{
+      const res = await fetch(url);
+      if(!res.ok) throw new Error(res.status);
+      json = await res.json();
+    }catch(err){
+      console.warn('fetch failed', league.id, err);
+      return { error:true, league:league.id };
+    }
+    const events = json.events || [];
+    const out = [];
+    events.forEach(ev=>{
+      const comp = ev.competitions && ev.competitions[0];
+      if(!comp) return;
+      const venue = comp.venue || {};
+      const vcity = venue.address && venue.address.city;
+      if(!vcity || !CITY_COORDS[vcity]) return;
+      const dist = haversine(CITY_COORDS[stop.city], CITY_COORDS[vcity]);
+      if(dist > HARD_CAP_MI) return;
+      const competitors = comp.competitors || [];
+      const home = competitors.find(c=>c.homeAway==='home');
+      const away = competitors.find(c=>c.homeAway==='away');
+      if(!home || !away) return;
+      out.push({
+        id: league.id+'_'+ev.id,
+        league: league.id,
+        leagueLabel: league.label,
+        date: ev.date,
+        home: home.team.shortDisplayName || home.team.displayName,
+        away: away.team.shortDisplayName || away.team.displayName,
+        venueName: venue.fullName || '',
+        venueCity: vcity,
+        tz: CITY_TZ[vcity] || CITY_TZ[stop.city] || 'America/New_York',
+        distance: dist,
+        // category is NOT fixed here — it's recomputed live against the
+        // current maxDriveMi setting each render, via categoryFor()
+        cityLabel: stop.city,
+        stopId: stop.id,
+        optionId: opt.id,
+      });
+    });
+    return out;
+  }
+
+  async function findGames(){
+    const btn = document.getElementById('findBtn');
+    const label = document.getElementById('findBtnLabel');
+    const statusLine = document.getElementById('statusLine');
+    btn.disabled = true; btn.classList.add('loading');
+    label.textContent = 'Searching…';
+    statusLine.classList.remove('err');
+    statusLine.textContent = '';
+
+    const enabledLeagues = LEAGUES.filter(l => document.getElementById('lg_'+l.id).checked);
+    if(enabledLeagues.length===0){
+      statusLine.textContent = 'Pick at least one league first.';
+      btn.disabled=false; btn.classList.remove('loading'); label.textContent='Find games';
+      return;
+    }
+
+    matches = {};
+    let errors = [];
+    let total = 0;
+
+    for(const stop of stops){
+      matches[stop.id] = {};
+      for(const opt of stop.options){
+        if(!opt.arrive || !opt.depart){ matches[stop.id][opt.id] = []; continue; }
+        const results = await Promise.all(enabledLeagues.map(lg => fetchLeagueForOption(lg, stop, opt)));
+        let list = [];
+        results.forEach(r=>{
+          if(r && r.error){ errors.push(r.league); return; }
+          list = list.concat(r);
+        });
+        list.sort((a,b)=> new Date(a.date) - new Date(b.date));
+        matches[stop.id][opt.id] = list;
+        total += list.length;
+        if(!activeOptionByStop[stop.id]) activeOptionByStop[stop.id] = opt.id;
+      }
+    }
+
+    btn.disabled=false; btn.classList.remove('loading'); label.textContent='Find games';
+
+    if(errors.length){
+      statusLine.classList.add('err');
+      statusLine.textContent = `Some leagues (${[...new Set(errors)].join(', ')}) didn't respond — try again in a moment.`;
+    } else if(total===0){
+      statusLine.textContent = 'No games found in this window — try widening dates or adding leagues.';
+    } else {
+      statusLine.textContent = `Found ${total} game${total===1?'':'s'} across your trip.`;
+    }
+
+    renderResults();
+    document.getElementById('resultsBlock').scrollIntoView({behavior:'smooth', block:'start'});
+  }
+
+  document.getElementById('findBtn').addEventListener('click', findGames);
+  document.getElementById('viewCalBtn').addEventListener('click', ()=>{
+    activeTab = 'itinerary';
+    renderResults();
+    document.getElementById('resultsBlock').scrollIntoView({behavior:'smooth', block:'start'});
+  });
+
+  // ---------------- calendar mini-grid ----------------
+  // rangeStart/rangeEnd (ISO date strings, optional) get a subtle highlight so you
+  // can see which days you're actually in town. games: array of matched games to
+  // dot-mark. Both are independent of each other on purpose.
+  function buildMonthGrid(year, month, rangeStart, rangeEnd, games){
+    const first = new Date(year, month, 1);
+    const startDow = first.getDay();
+    const daysInMonth = new Date(year, month+1, 0).getDate();
+    const monthName = first.toLocaleDateString('en-US',{month:'long', year:'numeric'});
+
+    const gamesByDay = {};
+    games.forEach(g=>{
+      const k = dayKeyTz(g.date, g.tz);
+      if(!gamesByDay[k]) gamesByDay[k]=[];
+      gamesByDay[k].push(g);
+    });
+
+    let cells = '';
+    ['S','M','T','W','T','F','S'].forEach(d=> cells += `<div class="cal-dow">${d}</div>`);
+    for(let i=0;i<startDow;i++) cells += `<div class="cal-day empty"></div>`;
+    for(let d=1; d<=daysInMonth; d++){
+      const iso = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const inTrip = rangeStart && rangeEnd && iso >= rangeStart && iso <= rangeEnd;
+      const games_ = gamesByDay[iso] || [];
+      const hasLocal = games_.some(g=>g.category==='local');
+      const hasNear = games_.some(g=>g.category==='nearby');
+      let dots = '';
+      if(hasLocal) dots += `<span class="d-local"></span>`;
+      if(hasNear) dots += `<span class="d-near"></span>`;
+      cells += `<div class="cal-day ${inTrip?'intrip':''} ${games_.length?'hasgame':''}" data-jump="${iso}">
+          <span>${d}</span>
+          ${dots?`<div class="dots">${dots}</div>`:''}
+        </div>`;
+    }
+    return `<div class="cal-month"><div class="mname">${monthName}</div><div class="cal-grid">${cells}</div></div>`;
+  }
+
+  function monthsSpanning(startIso, endIso){
+    const start = new Date(startIso+'T12:00:00');
+    const end = new Date(endIso+'T12:00:00');
+    const monthsSet = [];
+    let cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+    const endMonth = new Date(end.getFullYear(), end.getMonth(), 1);
+    while(cursor <= endMonth){
+      monthsSet.push([cursor.getFullYear(), cursor.getMonth()]);
+      cursor = new Date(cursor.getFullYear(), cursor.getMonth()+1, 1);
+    }
+    return monthsSet;
+  }
+
+  // ---------------- shared ticket card ----------------
+  function ticketCard(g, opts){
+    opts = opts || {};
+    const isSel = isSelected(g.id);
+    const meta = g.category==='manual'
+      ? `<span class="tag-local">✎ Added manually</span>`
+      : g.category==='local'
+      ? `<span class="tag-local">● In ${esc(g.cityLabel)}</span>`
+      : `<span class="tag-near">● ~${Math.max(1, Math.round(g.distance/AVG_MPH*60))} min · ${Math.round(g.distance)}mi/${miToKm(g.distance)}km away · ${esc(g.venueCity)}</span>`;
+    const bought = !!g.purchased;
+    const priceVal = (g.price === undefined || g.price === null) ? '' : g.price;
+    const linkVal = g.ticketUrl || '';
+    const ticketsRow = opts.showTicketFields ? `
+      <div class="ticket-tickets">
+        <div class="ticket-price-field">
+          <span class="curr">$</span>
+          <input type="number" inputmode="decimal" min="0" step="0.01" placeholder="0" class="tk-price" data-id="${g.id}" value="${esc(String(priceVal))}">
+        </div>
+        <div class="ticket-link-field">
+          <input type="url" placeholder="Paste ticket link" class="tk-link" data-id="${g.id}" value="${esc(linkVal)}">
+          ${linkVal ? `<a class="ticket-link-open" href="${esc(linkVal)}" target="_blank" rel="noopener noreferrer" title="Open ticket link">↗</a>` : ''}
+        </div>
+        <label class="ticket-bought-toggle ${bought?'on':''}">
+          <input type="checkbox" class="tk-bought" data-id="${g.id}" ${bought?'checked':''}>
+          ${bought ? 'Bought' : 'Mark bought'}
+        </label>
+      </div>
+    ` : '';
+    return `
+    <div class="ticket ${isSel?'selected':''} ${bought?'bought':''}" data-id="${g.id}">
+      <div class="ticket-main">
+        <span class="ticket-league ${g.league}">${esc(g.leagueLabel)}</span>
+        ${opts.showCity ? `<div class="ticket-city">📍 ${esc(g.cityLabel)}</div>` : ''}
+        <div class="ticket-teams">${esc(g.away)} @ ${esc(g.home)}</div>
+        <div class="ticket-meta">
+          <span class="mono">${fmtTime(g.date, g.tz)}</span>
+          <span>${esc(g.venueName)}</span>
+          ${meta}
+        </div>
+        ${ticketsRow}
+      </div>
+      <div class="ticket-perf"></div>
+      <div class="ticket-action">
+        <button data-id="${g.id}" class="toggle-btn">${isSel?'✓':'+'}</button>
+        <span class="lbl">${isSel?(opts.removeLabel||'Added'):'Add'}</span>
+      </div>
+    </div>`;
+  }
+
+  function agendaHtml(list, cardOpts){
+    if(!list.length) return '<p class="empty-note">Nothing here for this window.</p>';
+    const byDay = {};
+    list.forEach(g=>{
+      const k = dayKeyTz(g.date, g.tz);
+      if(!byDay[k]) byDay[k]=[];
+      byDay[k].push(g);
+    });
+    return Object.keys(byDay).sort().map(k=>`
+      <div class="agenda-group" data-day="${k}">
+        <div class="agenda-date">${fmtDate(byDay[k][0].date, byDay[k][0].tz)}</div>
+        ${byDay[k].map(g=>ticketCard(g, cardOpts)).join('')}
+      </div>
+    `).join('');
+  }
+
+  function wirePanelInteractivity(panel){
+    panel.querySelectorAll('.toggle-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const id = btn.dataset.id;
+        const g = selectedStore[id] || findGameById(id);
+        if(!g) return;
+        toggleGame(g);
+        renderResults();
+        scheduleWrite();
+      });
+    });
+    panel.querySelectorAll('.cal-day.hasgame').forEach(cell=>{
+      cell.addEventListener('click', ()=>{
+        const target = panel.querySelector(`.agenda-group[data-day="${cell.dataset.jump}"]`);
+        if(target) target.scrollIntoView({behavior:'smooth', block:'center'});
+      });
+    });
+    panel.querySelectorAll('.tk-price').forEach(el=>el.addEventListener('change', e=>{
+      const g = selectedStore[e.target.dataset.id];
+      if(!g) return;
+      const v = e.target.value.trim();
+      g.price = v === '' ? null : parseFloat(v);
+      saveSelected();
+      renderResults();
+      scheduleWrite();
+    }));
+    panel.querySelectorAll('.tk-link').forEach(el=>el.addEventListener('change', e=>{
+      const g = selectedStore[e.target.dataset.id];
+      if(!g) return;
+      g.ticketUrl = e.target.value.trim();
+      saveSelected();
+      renderResults();
+      scheduleWrite();
+    }));
+    panel.querySelectorAll('.tk-bought').forEach(el=>el.addEventListener('change', e=>{
+      const g = selectedStore[e.target.dataset.id];
+      if(!g) return;
+      g.purchased = e.target.checked;
+      saveSelected();
+      renderResults();
+      scheduleWrite();
+    }));
+  }
+
+  function findGameById(id){
+    for(const stopId in matches){
+      for(const optId in matches[stopId]){
+        const hit = matches[stopId][optId].find(g=>g.id===id);
+        if(hit) return hit;
+      }
+    }
+    return null;
+  }
+
+  // ---------------- results rendering ----------------
+  function renderResults(){
+    const tabsEl = document.getElementById('tabs');
+    const panelsEl = document.getElementById('legPanels');
+    tabsEl.innerHTML = '';
+    panelsEl.innerHTML = '';
+
+    stops.forEach((stop)=>{
+      const activeOptId = activeOptionByStop[stop.id] || (stop.options[0] && stop.options[0].id);
+      activeOptionByStop[stop.id] = activeOptId;
+      const games = (matches[stop.id] && matches[stop.id][activeOptId]) || [];
+
+      const tab = document.createElement('div');
+      tab.className = 'tab' + (stop.id===activeTab ? ' active':'');
+      tab.innerHTML = `${esc(stop.city)} <span class="count">${games.length}</span>`;
+      tab.addEventListener('click', ()=>{ activeTab=stop.id; renderResults(); });
+      tabsEl.appendChild(tab);
+    });
+
+    const itinCountNum = Object.keys(selectedStore).length;
+    const itinTab = document.createElement('div');
+    itinTab.className = 'tab itin-tab' + (activeTab==='itinerary' ? ' active':'');
+    itinTab.innerHTML = `🗓 My itinerary <span class="count">${itinCountNum}</span>`;
+    itinTab.addEventListener('click', ()=>{ activeTab='itinerary'; renderResults(); });
+    tabsEl.appendChild(itinTab);
+
+    if(activeTab==='itinerary'){
+      panelsEl.appendChild(renderItineraryPanel());
+    } else {
+      const stop = findStop(activeTab) || stops[0];
+      if(stop) panelsEl.appendChild(renderStopPanel(stop));
+    }
+
+    updateItinCount();
+  }
+
+  // Recomputes local/nearby/too-far against the CURRENT maxDriveMi each call,
+  // so dragging the drive-radius slider re-filters instantly without a new
+  // search. Manually-added games are left alone.
+  function categoryFor(g){
+    if(g.category === 'manual') return 'manual';
+    if(g.distance <= LOCAL_MI) return 'local';
+    if(g.distance <= maxDriveMi) return 'nearby';
+    return 'toofar';
+  }
+  function applyDriveCategories(list){
+    list.forEach(g=>{ g.category = categoryFor(g); });
+    return list;
+  }
+  function miToKm(mi){ return Math.round(mi * 1.60934); }
+  function fmtDriveLabel(mi){
+    const minutes = Math.round(mi / AVG_MPH * 60);
+    const timeStr = minutes < 60 ? `${minutes} min` : `${Math.floor(minutes/60)}h ${minutes%60 ? (minutes%60)+'m' : ''}`.trim();
+    return `${mi} mi / ${miToKm(mi)} km (~${timeStr})`;
+  }
+
+  function renderStopPanel(stop){
+    const panel = document.createElement('div');
+    panel.className = 'leg-panel active';
+
+    const options = stop.options;
+    const activeOptId = activeOptionByStop[stop.id] || (options[0] && options[0].id);
+    activeOptionByStop[stop.id] = activeOptId;
+    const activeOpt = options.find(o=>o.id===activeOptId) || options[0];
+
+    if(!activeOpt || !activeOpt.arrive || !activeOpt.depart){
+      panel.innerHTML = `<p class="empty-note">Add dates for ${esc(stop.city)} to search this leg.</p>`;
+      return panel;
+    }
+
+    const games = applyDriveCategories((matches[stop.id] && matches[stop.id][activeOpt.id]) || []);
+
+    let compareHtml = '';
+    if(options.length>1){
+      compareHtml = `<div class="compare-strip">` + options.map((o,idx)=>{
+        const g = applyDriveCategories((matches[stop.id] && matches[stop.id][o.id]) || []);
+        const localCount = g.filter(x=>x.category==='local').length;
+        const nearCount = g.filter(x=>x.category==='nearby').length;
+        const letter = String.fromCharCode(65+idx);
+        const active = o.id===activeOpt.id;
+        return `<button class="compare-card ${active?'active':''}" data-stop="${stop.id}" data-opt="${o.id}">
+          <div class="cc-label">Option ${letter}</div>
+          <div class="cc-dates mono">${esc(fmtRangeShort(o.arrive, o.depart))}</div>
+          <div class="cc-count">${localCount+nearCount} <span>game${(localCount+nearCount)===1?'':'s'}</span></div>
+          <div class="cc-split">${localCount} in city · ${nearCount} nearby</div>
+        </button>`;
+      }).join('') + `</div>`;
+    }
+
+    let calHtml = `<div class="mini-cal">`;
+    monthsSpanning(activeOpt.arrive, activeOpt.depart).forEach(([y,m])=>{
+      calHtml += buildMonthGrid(y, m, activeOpt.arrive, activeOpt.depart, games.filter(g=>g.category!=='toofar'));
+    });
+    calHtml += `</div>`;
+
+    const local = games.filter(g=>g.category==='local');
+    const nearby = games.filter(g=>g.category==='nearby');
+
+    panel.innerHTML = `
+      ${compareHtml}
+      ${calHtml}
+      <div class="block-head" style="margin-top:6px;"><h2 style="font-size:13px;"><span style="color:var(--turf)">●</span> In ${esc(stop.city)}</h2></div>
+      ${agendaHtml(local)}
+      <div class="block-head" style="margin-top:22px;">
+        <h2 style="font-size:13px;"><span style="color:var(--red)">●</span> Worth the drive</h2>
+        <div class="drive-control">
+          <label for="maxDriveRange">Willing to drive up to</label>
+          <input type="range" id="maxDriveRange" min="10" max="${HARD_CAP_MI}" step="10" value="${maxDriveMi}">
+          <span class="mono" id="maxDriveLabel">${esc(fmtDriveLabel(maxDriveMi))}</span>
+        </div>
+      </div>
+      ${agendaHtml(nearby)}
+    `;
+
+    wirePanelInteractivity(panel);
+    panel.querySelector('#maxDriveRange').addEventListener('input', (e)=>{
+      maxDriveMi = parseInt(e.target.value, 10);
+      panel.querySelector('#maxDriveLabel').textContent = fmtDriveLabel(maxDriveMi);
+      // re-render fully on release-ish cadence via rAF so dragging stays smooth
+      clearTimeout(panel.__driveTimer);
+      panel.__driveTimer = setTimeout(()=>{ renderResults(); scheduleWrite(); }, 150);
+    });
+    panel.querySelectorAll('.compare-card').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        activeOptionByStop[btn.dataset.stop] = btn.dataset.opt;
+        renderResults();
+      });
+    });
+
+    return panel;
+  }
+
+  function itineraryTotals(list){
+    let totalAll = 0, totalBought = 0, pricedCount = 0, boughtCount = 0;
+    list.forEach(g=>{
+      const p = typeof g.price === 'number' && !isNaN(g.price) ? g.price : null;
+      if(p !== null){
+        totalAll += p;
+        pricedCount++;
+        if(g.purchased){ totalBought += p; boughtCount++; }
+      } else if(g.purchased){
+        boughtCount++;
+      }
+    });
+    return { totalAll, totalBought, pricedCount, boughtCount, count: list.length };
+  }
+
+  function renderItineraryPanel(){
+    const panel = document.createElement('div');
+    panel.className = 'leg-panel active';
+
+    const list = Object.values(selectedStore).sort((a,b)=> new Date(a.date) - new Date(b.date));
+
+    // trip-wide span, across every stop's every date option, for the calendar highlight
+    let tripStart = null, tripEnd = null;
+    stops.forEach(s=> s.options.forEach(o=>{
+      if(o.arrive && (!tripStart || o.arrive < tripStart)) tripStart = o.arrive;
+      if(o.depart && (!tripEnd || o.depart > tripEnd)) tripEnd = o.depart;
+    }));
+
+    if(!tripStart || !tripEnd){
+      if(list.length){
+        const dates = list.map(g=>dayKeyTz(g.date, g.tz)).sort();
+        tripStart = dates[0]; tripEnd = dates[dates.length-1];
+      }
+    }
+
+    let calHtml = '';
+    if(tripStart && tripEnd){
+      calHtml = `<div class="mini-cal">`;
+      monthsSpanning(tripStart, tripEnd).forEach(([y,m])=>{
+        calHtml += buildMonthGrid(y, m, tripStart, tripEnd, list);
+      });
+      calHtml += `</div>`;
+    }
+
+    const t = itineraryTotals(list);
+    const totalsHtml = list.length ? `
+      <div class="itin-totals">
+        <span>${t.boughtCount} of ${t.count} bought</span>
+        <span class="bought-figure">Spent so far: <b>$${t.totalBought.toFixed(2)}</b></span>
+        <span>Priced total: <b>$${t.totalAll.toFixed(2)}</b>${t.pricedCount < t.count ? ` <span style="color:var(--slate)">(${t.count - t.pricedCount} not priced yet)</span>` : ''}</span>
+      </div>
+    ` : '';
+
+    const manualBtnHtml = !manualFormOpen ? `<button class="manual-add-btn" id="manualAddBtn">+ Add a game manually</button>` : '';
+    const manualFormHtml = manualFormOpen ? `
+      <form class="manual-form" id="manualForm">
+        <div>
+          <label for="mf-away">Away team</label>
+          <input type="text" id="mf-away" required>
+        </div>
+        <div>
+          <label for="mf-home">Home team</label>
+          <input type="text" id="mf-home" required>
+        </div>
+        <div>
+          <label for="mf-league">League / event type</label>
+          <input type="text" id="mf-league" placeholder="e.g. AHL, Concert">
+        </div>
+        <div>
+          <label for="mf-city">City</label>
+          <select id="mf-city">${cityOptions}</select>
+        </div>
+        <div>
+          <label for="mf-date">Date</label>
+          <input type="date" id="mf-date" required>
+        </div>
+        <div>
+          <label for="mf-time">Local start time</label>
+          <input type="time" id="mf-time" required>
+        </div>
+        <div class="full">
+          <label for="mf-venue">Venue (optional)</label>
+          <input type="text" id="mf-venue" placeholder="e.g. Crypto.com Arena">
+        </div>
+        <div class="manual-form-error" id="mfError" style="display:none;"></div>
+        <div class="manual-form-actions">
+          <button type="submit" class="btn-save">Add to itinerary</button>
+          <button type="button" class="btn-cancel" id="mfCancel">Cancel</button>
+        </div>
+      </form>
+    ` : '';
+
+    panel.innerHTML = `
+      ${calHtml}
+      <div class="block-head" style="margin-top:6px;"><h2 style="font-size:13px;">Games you've added</h2><span class="hint">tap + to remove one</span></div>
+      ${totalsHtml}
+      ${manualBtnHtml}
+      ${manualFormHtml}
+      ${agendaHtml(list, {showCity:true, removeLabel:'Remove', showTicketFields:true})}
+    `;
+
+    wirePanelInteractivity(panel);
+
+    const openBtn = panel.querySelector('#manualAddBtn');
+    if(openBtn) openBtn.addEventListener('click', ()=>{
+      manualFormOpen = true;
+      renderResults();
+    });
+    const cancelBtn = panel.querySelector('#mfCancel');
+    if(cancelBtn) cancelBtn.addEventListener('click', ()=>{
+      manualFormOpen = false;
+      renderResults();
+    });
+    const form = panel.querySelector('#manualForm');
+    if(form) form.addEventListener('submit', (e)=>{
+      e.preventDefault();
+      const errEl = panel.querySelector('#mfError');
+      const away = panel.querySelector('#mf-away').value.trim();
+      const home = panel.querySelector('#mf-home').value.trim();
+      const leagueLabel = panel.querySelector('#mf-league').value.trim() || 'Event';
+      const city = panel.querySelector('#mf-city').value;
+      const dateStr = panel.querySelector('#mf-date').value;
+      const timeStr = panel.querySelector('#mf-time').value;
+      const venueName = panel.querySelector('#mf-venue').value.trim();
+      if(!away || !home || !dateStr || !timeStr){
+        errEl.textContent = 'Fill in both teams, a date, and a start time.';
+        errEl.style.display = 'block';
+        return;
+      }
+      const tz = CITY_TZ[city] || 'America/New_York';
+      const utcMs = localWallClockToUtcMs(dateStr, timeStr, tz);
+      const id = 'manual_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+      const game = {
+        id, league:'manual', leagueLabel,
+        date: new Date(utcMs).toISOString(),
+        home, away,
+        venueName, venueCity: city, tz,
+        distance: 0, category: 'manual', cityLabel: city,
+      };
+      selectedStore[id] = game;
+      saveSelected();
+      manualFormOpen = false;
+      renderResults();
+      scheduleWrite();
+    });
+
+    return panel;
+  }
+
+  function updateItinCount(){
+    document.getElementById('itinCount').textContent = Object.keys(selectedStore).length;
+  }
+  document.getElementById('clearItinBtn').addEventListener('click', ()=>{
+    selectedStore = {};
+    saveSelected();
+    renderResults();
+    scheduleWrite();
+  });
+
+  // ---------------- Firebase cross-device sync ----------------
+  // Synced: stops (incl. every alternate date option), which leagues are
+  // toggled on, and the saved itinerary. NOT synced: `matches` (the actual
+  // search results) — cheap to re-fetch with "Find games" and would bloat
+  // every write. Anonymous auth lets any device sync via the share link with
+  // no login; Google sign-in additionally lists your plans so you can find
+  // them again without a link.
+  let planId = new URLSearchParams(location.search).get('plan') || null;
+  let currentUser = null;
+  let unsubPlan = null;
+  let writeTimer = null;
+  let applyingRemote = false;
+
+  const syncDot = document.getElementById('syncDot');
+  const syncLabel = document.getElementById('syncLabel');
+  const syncShareBtn = document.getElementById('syncShareBtn');
+  const syncGoogleBtn = document.getElementById('syncGoogleBtn');
+  const accountChip = document.getElementById('accountChip');
+  const myPlansBtn = document.getElementById('myPlansBtn');
+  const myPlansPanel = document.getElementById('myPlansPanel');
+  const syncSignOutBtn = document.getElementById('syncSignOutBtn');
+  const syncStatusEl = document.getElementById('syncStatus');
+
+  function setSyncStatus(msg, kind){
+    syncStatusEl.textContent = msg;
+    syncStatusEl.classList.remove('err','ok');
+    if(kind) syncStatusEl.classList.add(kind);
+  }
+  function setSyncDot(state){ // 'live' | 'off' | ''
+    syncDot.className = 'sync-dot' + (state ? ' '+state : '');
+  }
+
+  function currentPayload(){
+    return {
+      stops,
+      enabledLeagues: LEAGUES.filter(l => document.getElementById('lg_'+l.id).checked).map(l=>l.id),
+      selectedStore,
+      maxDriveMi,
+      updatedAt: serverTimestamp(),
+    };
+  }
+
+  function scheduleWrite(){
+    if(!planId || !currentUser || applyingRemote) return;
+    clearTimeout(writeTimer);
+    writeTimer = setTimeout(writePlanNow, 700);
+  }
+
+  async function writePlanNow(){
+    if(!planId || !currentUser) return;
+    try{
+      await setDoc(doc(db,'gameplans',planId), currentPayload());
+      setSyncDot('live');
+      setSyncStatus('Synced.', 'ok');
+    }catch(err){
+      setSyncDot('off');
+      setSyncStatus(`Couldn't sync — ${err.message}`, 'err');
+    }
+  }
+
+  function applyRemotePlan(data){
+    applyingRemote = true;
+    try{
+      if(Array.isArray(data.stops) && data.stops.length){
+        stops = data.stops;
+        stops.forEach(s=>{
+          const n = parseInt((s.id||'s0').replace(/\D/g,''),10) || 0;
+          if(n >= stopIdCounter) stopIdCounter = n+1;
+          (s.options||[]).forEach(o=>{
+            const on = parseInt((o.id||'o0').replace(/\D/g,''),10) || 0;
+            if(on >= optIdCounter) optIdCounter = on+1;
+          });
+        });
+      }
+      if(Array.isArray(data.enabledLeagues)){
+        LEAGUES.forEach(l=>{
+          const cb = document.getElementById('lg_'+l.id);
+          if(cb) cb.checked = data.enabledLeagues.includes(l.id);
+        });
+      }
+      if(data.selectedStore && typeof data.selectedStore === 'object'){
+        selectedStore = data.selectedStore;
+        saveSelected();
+      }
+      if(typeof data.maxDriveMi === 'number' && data.maxDriveMi > 0){
+        maxDriveMi = data.maxDriveMi;
+      }
+      renderStops();
+      renderResults();
+    } finally {
+      applyingRemote = false;
+    }
+  }
+
+  function subscribeToPlan(id){
+    if(unsubPlan) unsubPlan();
+    setSyncDot('');
+    setSyncStatus('Connecting to shared plan…');
+    unsubPlan = onSnapshot(doc(db,'gameplans',id), snap=>{
+      if(snap.exists()){
+        applyRemotePlan(snap.data());
+        setSyncDot('live');
+        setSyncStatus('Synced live to this link.', 'ok');
+      } else {
+        setSyncDot('off');
+        setSyncStatus('This plan link no longer exists.', 'err');
+      }
+    }, err=>{
+      setSyncDot('off');
+      setSyncStatus(`Sync connection lost — ${err.message}`, 'err');
+    });
+    syncShareBtn.style.display = 'inline-flex';
+  }
+
+  async function ensurePlanExists(){
+    if(planId) return planId;
+    const ref = doc(collection(db,'gameplans'));
+    planId = ref.id;
+    const url = new URL(location.href);
+    url.searchParams.set('plan', planId);
+    history.replaceState(null, '', url);
+    await setDoc(ref, currentPayload());
+    subscribeToPlan(planId);
+    if(currentUser && !currentUser.isAnonymous) saveMyPlanRef();
+    return planId;
+  }
+
+  async function saveMyPlanRef(){
+    if(!currentUser || currentUser.isAnonymous || !planId) return;
+    const label = (stops[0] && stops[0].city) ? `${stops[0].city} trip` : 'Game plan';
+    try{
+      await setDoc(doc(db,'users',currentUser.uid,'gamePlanRefs',planId), {
+        planId, label, updatedAt: serverTimestamp(),
+      });
+    }catch(err){ console.warn('could not save plan ref', err); }
+  }
+
+  syncShareBtn.addEventListener('click', async ()=>{
+    if(!planId) await ensurePlanExists();
+    const url = new URL(location.href);
+    url.searchParams.set('plan', planId);
+    try{
+      await navigator.clipboard.writeText(url.toString());
+      setSyncStatus('Link copied — send it to open this same plan on another device.', 'ok');
+    }catch(e){
+      setSyncStatus(`Share link: ${url.toString()}`);
+    }
+  });
+
+  function renderAccountChip(){
+    if(currentUser && !currentUser.isAnonymous){
+      accountChip.style.display = 'flex';
+      accountChip.innerHTML = `${currentUser.photoURL ? `<img src="${currentUser.photoURL}">` : ''}${esc(currentUser.displayName || currentUser.email || 'Signed in')}`;
+      syncGoogleBtn.style.display = 'none';
+      myPlansBtn.style.display = 'inline-flex';
+      syncSignOutBtn.style.display = 'inline-flex';
+    } else {
+      accountChip.style.display = 'none';
+      syncGoogleBtn.style.display = 'inline-flex';
+      myPlansBtn.style.display = 'none';
+      syncSignOutBtn.style.display = 'none';
+      myPlansPanel.style.display = 'none';
+    }
+  }
+
+  async function handleGoogleSignIn(){
+    const provider = new GoogleAuthProvider();
+    setSyncStatus('Opening Google sign-in…');
+    try{
+      let result;
+      if(auth.currentUser && auth.currentUser.isAnonymous){
+        try{
+          result = await linkWithPopup(auth.currentUser, provider);
+        }catch(linkErr){
+          if(linkErr.code === 'auth/credential-already-in-use'){
+            result = await signInWithPopup(auth, provider);
+          } else {
+            throw linkErr;
+          }
+        }
+      } else {
+        result = await signInWithPopup(auth, provider);
+      }
+      currentUser = result.user;
+      renderAccountChip();
+      if(planId) await saveMyPlanRef();
+      setSyncStatus(`Signed in as ${currentUser.displayName || currentUser.email}.`, 'ok');
+    }catch(err){
+      if(err.code === 'auth/popup-blocked'){
+        setSyncStatus('Your browser blocked the sign-in popup — allow popups for this site and try again.', 'err');
+      } else if(err.code === 'auth/popup-closed-by-user'){
+        setSyncStatus('Sign-in cancelled.');
+      } else {
+        setSyncStatus(`Google sign-in failed — ${err.message}`, 'err');
+      }
+    }
+  }
+  syncGoogleBtn.addEventListener('click', handleGoogleSignIn);
+
+  syncSignOutBtn.addEventListener('click', async ()=>{
+    try{ await signOut(auth); }catch(e){}
+    location.reload();
+  });
+
+  myPlansBtn.addEventListener('click', async ()=>{
+    if(myPlansPanel.style.display === 'flex'){ myPlansPanel.style.display='none'; return; }
+    if(!currentUser || currentUser.isAnonymous) return;
+    myPlansPanel.innerHTML = '<span class="sync-status">Loading your plans…</span>';
+    myPlansPanel.style.display = 'flex';
+    try{
+      const q = query(collection(db,'users',currentUser.uid,'gamePlanRefs'), orderBy('updatedAt','desc'));
+      const snap = await getDocs(q);
+      if(snap.empty){
+        myPlansPanel.innerHTML = '<span class="sync-status">No saved plans yet — share or save this one first.</span>';
+        return;
+      }
+      myPlansPanel.innerHTML = '';
+      snap.forEach(d=>{
+        const p = d.data();
+        const when = p.updatedAt && p.updatedAt.toDate ? p.updatedAt.toDate().toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
+        const item = document.createElement('div');
+        item.className = 'myplans-item';
+        item.innerHTML = `<span class="mp-label">${esc(p.label||'Game plan')}</span><span class="mp-when">${esc(when)}</span>`;
+        item.addEventListener('click', ()=>{
+          planId = p.planId;
+          const url = new URL(location.href);
+          url.searchParams.set('plan', planId);
+          history.replaceState(null, '', url);
+          subscribeToPlan(planId);
+          myPlansPanel.style.display = 'none';
+        });
+        myPlansPanel.appendChild(item);
+      });
+    }catch(err){
+      myPlansPanel.innerHTML = `<span class="sync-status err">Couldn't load plans — ${err.message}</span>`;
+    }
+  });
+
+  onAuthStateChanged(auth, async (user)=>{
+    if(!user){
+      try{ await signInAnonymously(auth); }
+      catch(err){ setSyncStatus(`Couldn't connect — ${err.message}`, 'err'); }
+      return;
+    }
+    currentUser = user;
+    renderAccountChip();
+    if(planId){
+      subscribeToPlan(planId);
+    } else {
+      setSyncDot('');
+      setSyncStatus('Not sharing yet — hit "Copy share link" to start syncing this plan.');
+      syncShareBtn.style.display = 'inline-flex';
+    }
+  });
+
+  renderResults();
+
+})();
+</script>
+</script>
+
+</body>
+</html>
