@@ -863,6 +863,143 @@ const db = getFirestore(fbApp);
     newStop("Dallas",      [ newOpt("2027-01-15","2027-01-18") ]),
   ];
 
+  // Every venue city ESPN used across these leagues for the 2026-27 season, keyed
+  // "City|ST" (city names repeat across states: Columbia SC vs MO, Newark NJ vs
+  // DE, Dallas TX vs PA...). [lat, lng, index into VENUE_TZS]. Built from the
+  // ESPN feed + GeoNames; CITY_COORDS above is only the list of trip stops.
+  const VENUE_TZS = ["America/Anchorage", "America/Boise", "America/Chicago", "America/Denver", "America/Detroit", "America/Edmonton", "America/Indiana/Indianapolis", "America/Kentucky/Louisville", "America/Los_Angeles", "America/New_York", "America/Phoenix", "America/Toronto", "America/Vancouver", "America/Winnipeg", "Pacific/Honolulu"];
+  const VENUE_LOCATIONS = {
+    "Abilene|TX":[32.4487,-99.7331,2],"Akron|OH":[41.0814,-81.519,9],"Albany|NY":[42.6526,-73.7562,9],"Albuquerque|NM":[35.0845,-106.6511,3],
+    "Ames|IA":[42.0347,-93.6199,2],"Amherst|MA":[42.3672,-72.5185,9],"Anaheim|CA":[33.8353,-117.9145,8],"Anchorage|AK":[61.2181,-149.9003,0],
+    "Ann Arbor|MI":[42.2776,-83.7409,4],"Annapolis|MD":[38.9786,-76.4918,9],"Arlington|TX":[32.7357,-97.1081,2],"Asheville|NC":[35.6009,-82.554,9],
+    "Ashwaubenon|WI":[44.4822,-88.0701,2],"Athens|GA":[33.9609,-83.3779,9],"Athens|OH":[39.3292,-82.1013,9],"Atlanta|GA":[33.749,-84.388,9],
+    "Auburn|AL":[32.6099,-85.4808,2],"Austin|TX":[30.2672,-97.7431,2],"Bakersfield|CA":[35.3733,-119.0187,8],"Baltimore|MD":[39.2904,-76.6122,9],
+    "Baton Rouge|LA":[30.4433,-91.1875,2],"Beaumont|TX":[30.0861,-94.1018,2],"Bemidji|MN":[47.4736,-94.8803,2],"Berkeley|CA":[37.8716,-122.2728,8],
+    "Bethlehem|PA":[40.6259,-75.3705,9],"Big Rapids|MI":[43.6981,-85.4837,4],"Binghamton|NY":[42.0987,-75.918,9],"Birmingham|AL":[33.5207,-86.8025,2],
+    "Blacksburg|VA":[37.2296,-80.4139,9],"Bloomington|IN":[39.1653,-86.5264,6],"Boca Raton|FL":[26.3587,-80.0831,9],
+    "Boiling Springs|NC":[35.2543,-81.667,9],"Boise|ID":[43.6135,-116.2035,1],"Boone|NC":[36.2168,-81.6745,9],"Boston|MA":[42.3584,-71.0598,9],
+    "Boulder|CO":[40.015,-105.2706,3],"Bowling Green|KY":[36.9903,-86.4436,2],"Bowling Green|OH":[41.3748,-83.6513,9],"Bozeman|MT":[45.6797,-111.0386,3],
+    "Bridgeview|IL":[41.75,-87.8042,2],"Bridgewater|MA":[41.9904,-70.975,9],"Bronx|NY":[40.8499,-73.8664,9],"Brookings|SD":[44.3114,-96.7984,2],
+    "Brooklyn|NY":[40.6501,-73.9496,9],"Buffalo|NY":[42.8865,-78.8784,9],"Buies Creek|NC":[35.4132,-78.7356,9],"Burlington|VT":[44.4759,-73.2121,9],
+    "Calgary|AB":[51.0501,-114.0853,5],"Cambridge|MA":[42.3751,-71.1056,9],"Canton|NY":[44.5956,-75.1691,9],"Cape Girardeau|MO":[37.3059,-89.5182,2],
+    "Carbondale|IL":[37.7273,-89.2168,2],"Carrollton|GA":[33.5801,-85.0766,9],"Carson|CA":[33.8314,-118.282,8],"Cedar City|UT":[37.6775,-113.0619,3],
+    "Cedar Falls|IA":[42.5278,-92.4455,2],"Cedar Park|TX":[30.5052,-97.8203,2],"Champaign|IL":[40.1164,-88.2434,2],"Chapel Hill|NC":[35.9132,-79.0558,9],
+    "Charleston|IL":[39.4961,-88.1762,2],"Charleston|SC":[32.7763,-79.9327,9],"Charlottesville|VA":[38.0293,-78.4767,9],
+    "Charlotte|NC":[35.2271,-80.8431,9],"Chattanooga|TN":[35.0456,-85.3097,9],"Cheney|WA":[47.4874,-117.5758,8],"Cherokee|NC":[35.4743,-83.3149,9],
+    "Chester|PA":[39.8475,-75.3578,9],"Chestnut Hill|MA":[42.3306,-71.1662,9],"Chicago|IL":[41.85,-87.65,2],"Cincinnati|OH":[39.1271,-84.5144,9],
+    "Clarksville|TN":[36.5298,-87.3594,2],"Clemson|SC":[34.6834,-82.8374,9],"Cleveland|OH":[41.4995,-81.6954,9],"Clinton|SC":[34.4726,-81.8807,9],
+    "College Park|MD":[38.9807,-76.9369,9],"College Station|TX":[30.628,-96.3344,2],"Colorado Springs|CO":[38.8339,-104.8214,3],
+    "Columbia|MO":[38.9517,-92.3341,2],"Columbia|SC":[34.0007,-81.0348,9],"Columbus|OH":[39.9612,-82.9988,9],"Commerce City|CO":[39.8083,-104.9339,3],
+    "Commerce|TX":[33.2471,-95.9,2],"Conway|AR":[35.0887,-92.4421,2],"Conway|SC":[33.836,-79.0478,9],"Cookeville|TN":[36.1628,-85.5016,2],
+    "Coral Gables|FL":[25.7215,-80.2684,9],"Corpus Christi|TX":[27.8006,-97.3964,2],"Corvallis|OR":[44.5646,-123.262,8],
+    "Cullowhee|NC":[35.3137,-83.1765,9],"Dallas|PA":[41.3362,-75.9633,9],"Dallas|TX":[32.7831,-96.8067,2],"Davidson|NC":[35.5023,-80.8391,9],
+    "Davis|CA":[38.5449,-121.7405,8],"Daytona Beach|FL":[29.2108,-81.0228,9],"Dayton|OH":[39.7589,-84.1916,9],"DeLand|FL":[29.0283,-81.3031,9],
+    "Dekalb|IL":[41.9295,-88.7504,2],"Denton|TX":[33.2148,-97.1331,2],"Denver|CO":[39.7392,-104.9847,3],"Des Moines|IA":[41.6005,-93.6091,2],
+    "Destin|FL":[30.3935,-86.4958,2],"Detroit|MI":[42.3314,-83.0457,4],"Dover|DE":[39.1582,-75.5244,9],"Duluth|MN":[46.7833,-92.1066,2],
+    "Durham|NC":[35.994,-78.8986,9],"Durham|NH":[43.134,-70.9265,9],"East Hartford|CT":[41.7823,-72.612,9],"East Lansing|MI":[42.737,-84.4839,4],
+    "East Meadow|NY":[40.714,-73.559,9],"East Rutherford|NJ":[40.834,-74.0971,9],"Easton|PA":[40.6884,-75.2207,9],"Edinburg|TX":[26.3017,-98.1633,2],
+    "Edmonton|AB":[53.5501,-113.4687,5],"Edwardsville|IL":[38.8114,-89.9532,2],"El Paso|TX":[31.7587,-106.4869,3],"Elmont|NY":[40.7009,-73.7129,9],
+    "Elon|NC":[36.1029,-79.5067,9],"Emmitsburg|MD":[39.7045,-77.3269,9],"Erie|PA":[42.1292,-80.0851,9],"Eugene|OR":[44.0521,-123.0867,8],
+    "Evanston|IL":[42.0411,-87.6901,2],"Evansville|IN":[37.9748,-87.5559,2],"Fairbanks|AK":[64.8378,-147.7164,0],"Fairfax|VA":[38.8462,-77.3064,9],
+    "Fairfield|CT":[41.1412,-73.2637,9],"Fargo|ND":[46.8772,-96.7898,2],"Farmers Branch|TX":[32.9265,-96.8961,2],"Farmville|VA":[37.3021,-78.3919,9],
+    "Fayetteville|AR":[36.0626,-94.1574,2],"Flagstaff|AZ":[35.1981,-111.6513,10],"Florence|AL":[34.7998,-87.6773,2],
+    "Fort Collins|CO":[40.5853,-105.0844,3],"Fort Myers|FL":[26.6217,-81.8406,9],"Fort Wayne|IN":[41.1306,-85.1289,6],"Fort Worth|TX":[32.7254,-97.3208,2],
+    "Foxborough|MA":[42.0654,-71.2478,9],"Fresno|CA":[36.7477,-119.7724,8],"Frisco|TX":[33.1507,-96.8236,2],"Fullerton|CA":[33.8703,-117.9253,8],
+    "Gainesville|FL":[29.6516,-82.3248,9],"Glen Allen|VA":[37.666,-77.5064,9],"Glendale|AZ":[33.5386,-112.186,10],"Glens Falls|NY":[43.3095,-73.644,9],
+    "Grambling|LA":[32.5277,-92.714,2],"Grand Forks|ND":[47.9253,-97.0328,2],"Grand Rapids|MI":[42.9634,-85.6681,4],"Greeley|CO":[40.4233,-104.7091,3],
+    "Green Bay|WI":[44.5192,-88.0198,2],"Greensboro|NC":[36.0726,-79.792,9],"Greenville|NC":[35.6127,-77.3663,9],"Greenville|SC":[34.8526,-82.394,9],
+    "Hackensack|NJ":[40.8859,-74.0435,9],"Hamden|CT":[41.3959,-72.8968,9],"Hamilton|NY":[42.827,-75.5446,9],"Hammond|LA":[30.5046,-90.4629,2],
+    "Hampton|VA":[37.0299,-76.3452,9],"Hanover|NH":[43.7023,-72.2895,9],"Harrisonburg|VA":[38.4496,-78.8689,9],"Harrison|NJ":[40.7465,-74.1563,9],
+    "Hartford|CT":[41.7637,-72.6851,9],"Hattiesburg|MS":[31.3271,-89.2903,2],"Hempstead|NY":[40.7062,-73.6187,9],"Henderson|NV":[36.0397,-114.9819,8],
+    "Hershey|PA":[40.2859,-76.6502,9],"High Point|NC":[35.9557,-80.0053,9],"Highland Heights|KY":[39.0331,-84.4519,9],"Homewood|AL":[33.4718,-86.8008,2],
+    "Honolulu|HI":[21.3069,-157.8583,14],"Houghton|MI":[47.1219,-88.569,4],"Houston|TX":[29.7633,-95.3633,2],"Huntington|WV":[38.4192,-82.4451,9],
+    "Huntsville|AL":[34.7304,-86.5859,2],"Huntsville|TX":[30.7235,-95.5508,2],"Idaho Falls|ID":[43.4666,-112.0341,1],"Indianapolis|IN":[39.7684,-86.158,6],
+    "Inglewood|CA":[33.9617,-118.3531,8],"Iowa City|IA":[41.6611,-91.5302,2],"Irvine|CA":[33.6695,-117.8231,8],"Ithaca|NY":[42.4406,-76.4966,9],
+    "Itta Bena|MS":[33.4951,-90.3198,2],"Jacksonville|AL":[33.8138,-85.7613,2],"Jacksonville|FL":[30.3322,-81.6556,9],"Jackson|MS":[32.2988,-90.1848,2],
+    "Jersey City|NJ":[40.7282,-74.0776,9],"Johnson City|TN":[36.3134,-82.3535,9],"Jonesboro|AR":[35.8423,-90.7043,2],"Kalamazoo|MI":[42.2917,-85.5872,4],
+    "Kansas City|KS":[39.1142,-94.6275,2],"Kansas City|MO":[39.0997,-94.5786,2],"Kennesaw|GA":[34.0234,-84.6155,9],"Kent|OH":[41.1537,-81.3579,9],
+    "Kingston|RI":[41.4804,-71.5226,9],"Kissimmee|FL":[28.3047,-81.4167,9],"Knoxville|TN":[35.9606,-83.9207,9],"Lafayette|LA":[30.2241,-92.0198,2],
+    "Laie|HI":[21.6455,-157.9225,14],"Lake Charles|LA":[30.2131,-93.2044,2],"Lake Placid|NY":[44.2796,-73.982,9],"Landover|MD":[38.934,-76.8966,9],
+    "Laramie|WY":[41.3114,-105.5911,3],"Las Cruces|NM":[32.3123,-106.7783,3],"Las Vegas|NV":[36.175,-115.1372,8],"Lawrenceville|NJ":[40.2973,-74.7296,9],
+    "Lawrence|KS":[38.9717,-95.2352,2],"Lewisburg|PA":[40.9645,-76.8844,9],"Lexington|KY":[37.9887,-84.4777,9],"Lexington|VA":[37.784,-79.4428,9],
+    "Lincoln|NE":[40.8,-96.667,2],"Little Rock|AR":[34.7465,-92.2896,2],"Logan|UT":[41.7355,-111.8344,3],"Long Beach|CA":[33.767,-118.1892,8],
+    "Loretto|PA":[40.5031,-78.6303,9],"Lorman|MS":[31.8743,-91.1376,2],"Los Angeles|CA":[34.0522,-118.2437,8],"Loudonville|NY":[42.7187,-73.7529,9],
+    "Louisville|KY":[38.2542,-85.7594,7],"Lowell|MA":[42.6334,-71.3162,9],"Lubbock|TX":[33.5779,-101.8552,2],"Lynchburg|VA":[37.4138,-79.1423,9],
+    "Macomb|IL":[40.4592,-90.6718,2],"Macon|GA":[32.8407,-83.6324,9],"Madison|WI":[43.0731,-89.4012,2],"Makawao|HI":[20.8569,-156.3131,14],
+    "Malibu|CA":[34.0258,-118.7804,8],"Manhattan|KS":[39.1836,-96.5717,2],"Mankato|MN":[44.1591,-94.0092,2],"Marquette|MI":[46.5435,-87.3954,4],
+    "Martin|TN":[36.3434,-88.8503,2],"Maryland Heights|MO":[38.7131,-90.4298,2],"Maui|HI":[20.8783,-156.6825,14],"Memphis|TN":[35.1495,-90.049,2],
+    "Mendota Heights|MN":[44.8836,-93.1383,2],"Miami Gardens|FL":[25.942,-80.2456,9],"Miami|FL":[25.7743,-80.1937,9],"Milwaukee|WI":[43.0389,-87.9065,2],
+    "Minneapolis|MN":[44.98,-93.2638,2],"Missoula|MT":[46.8721,-113.994,3],"Mobile|AL":[30.6944,-88.043,2],"Monroe|LA":[32.5093,-92.1193,2],
+    "Montgomery|AL":[32.3668,-86.3,2],"Montreal|QC":[45.5088,-73.5878,11],"Moon Township|PA":[40.5197,-80.2184,9],"Moraga|CA":[37.8349,-122.1297,8],
+    "Morehead|KY":[38.184,-83.4327,9],"Morgantown|WV":[39.6295,-79.9559,9],"Moscow|ID":[46.7324,-117.0002,8],"Mount Pleasant|MI":[43.5978,-84.7675,4],
+    "Muncie|IN":[40.1934,-85.3864,6],"Murfreesboro|TN":[35.8456,-86.3903,2],"Murray|KY":[36.6103,-88.3148,2],"Nacogdoches|TX":[31.6035,-94.6555,2],
+    "Naples|FL":[26.1423,-81.796,9],"Nashville|TN":[36.1659,-86.7844,2],"Natchitoches|LA":[31.7607,-93.0863,2],"New Britain|CT":[41.6612,-72.7795,9],
+    "New Haven|CT":[41.3081,-72.9282,9],"New Orleans|LA":[29.9547,-90.0751,2],"New Rochelle|NY":[40.9115,-73.7823,9],"New York|NY":[40.7143,-74.006,9],
+    "Newark|DE":[39.6837,-75.7497,9],"Newark|NJ":[40.7357,-74.1724,9],"Niagara Falls|NY":[43.0945,-79.0567,9],"Niagara University|NY":[43.1373,-79.0365,9],
+    "Norfolk|VA":[36.8468,-76.2852,9],"Normal|IL":[40.5142,-88.9906,2],"Norman|OK":[35.2226,-97.4395,2],"North Andover|MA":[42.6987,-71.1351,9],
+    "Northridge|CA":[34.2283,-118.5367,8],"Notre Dame|IN":[41.7002,-86.2379,6],"Oceanside|CA":[33.1959,-117.3795,8],"Ogden|UT":[41.223,-111.9738,3],
+    "Oklahoma City|OK":[35.4676,-97.5164,2],"Omaha|NE":[41.2563,-95.9404,2],"Ontario|CA":[34.0633,-117.6509,8],"Orangeburg|SC":[33.4918,-80.8556,9],
+    "Orchard Park|NY":[42.7676,-78.7439,9],"Orem|UT":[40.2969,-111.6946,3],"Orlando|FL":[28.5383,-81.3792,9],"Orono|ME":[44.8831,-68.672,9],
+    "Ottawa|ON":[45.4112,-75.6981,11],"Oxford|MS":[34.3665,-89.5192,2],"Oxford|OH":[39.507,-84.7452,9],"Palm Beach|FL":[26.7056,-80.0364,9],
+    "Palm Springs|CA":[33.8303,-116.5453,8],"Pasadena|CA":[34.1478,-118.1445,8],"Pensacola|FL":[30.4213,-87.2169,2],"Peoria|IL":[40.6936,-89.589,2],
+    "Philadelphia|PA":[39.9524,-75.1636,9],"Phoenix|AZ":[33.4484,-112.074,10],"Pine Bluff|AR":[34.2284,-92.0032,2],"Piscataway|NJ":[40.4993,-74.399,9],
+    "Pittsburgh|PA":[40.4406,-79.9959,9],"Pocatello|ID":[42.8713,-112.4455,1],"Portland|ME":[43.6574,-70.2589,9],"Portland|OR":[45.5234,-122.6762,8],
+    "Potsdam|NY":[44.6698,-74.9813,9],"Poughkeepsie|NY":[41.7004,-73.921,9],"Prairie View|TX":[30.0933,-95.9877,2],"Princess Anne|MD":[38.2029,-75.6924,9],
+    "Princeton|NJ":[40.3487,-74.659,9],"Providence|RI":[41.824,-71.4128,9],"Provo|UT":[40.2338,-111.6585,3],"Pullman|WA":[46.7313,-117.1796,8],
+    "Quebec City|QC":[46.8139,-71.208,11],"Queens|NY":[40.6815,-73.8365,9],"Radford|VA":[37.1318,-80.5764,9],"Raleigh|NC":[35.7721,-78.6386,9],
+    "Reno|NV":[39.5296,-119.8138,8],"Richmond|KY":[37.7479,-84.2947,9],"Richmond|VA":[37.5538,-77.4603,9],"Riverdale|NY":[40.9006,-73.9064,9],
+    "Riverside|CA":[33.9534,-117.3962,8],"Rochester|MI":[42.6806,-83.1338,4],"Rochester|NY":[43.1548,-77.6156,9],"Rock Hill|SC":[34.9249,-81.0251,9],
+    "Ruston|LA":[32.5232,-92.6379,2],"Sacramento|CA":[38.5816,-121.4944,8],"Saint Bonaventure|NY":[42.0803,-78.475,9],
+    "Saint Charles|MO":[38.7839,-90.4812,2],"Saint Cloud|MN":[45.5608,-94.1625,2],"Saint Joseph|MO":[39.7686,-94.8466,2],
+    "Saint Paul|MN":[44.9444,-93.0933,2],"Salisbury|NC":[35.671,-80.4742,9],"Salt Lake City|UT":[40.7608,-111.8911,3],
+    "San Antonio|TX":[29.4241,-98.4936,2],"San Diego|CA":[32.7157,-117.1647,8],"San Francisco|CA":[37.7749,-122.4194,8],"San Jose|CA":[37.3394,-121.895,8],
+    "San Juan Capistrano|CA":[33.5017,-117.6625,8],"San Luis Obispo|CA":[35.2828,-120.6596,8],"San Marcos|TX":[29.8833,-97.9414,2],
+    "Sandy|UT":[40.5916,-111.8841,3],"Santa Barbara|CA":[34.4208,-119.6982,8],"Santa Clara|CA":[37.3541,-121.9552,8],
+    "Sault Sainte Marie|MI":[46.4953,-84.3453,4],"Schenectady|NY":[42.8142,-73.9396,9],"Seattle|WA":[47.6062,-122.3321,8],
+    "Shreveport|LA":[32.5251,-93.7502,2],"Sioux City|IA":[42.5,-96.4003,2],"Sioux Falls|SD":[43.5437,-96.728,2],"Smithfield|RI":[41.922,-71.5495,9],
+    "South Bend|IN":[41.6834,-86.25,6],"South Easton|MA":[42.0607,-71.0824,9],"South Orange|NJ":[40.749,-74.2613,9],"Southaven|MS":[34.989,-90.0126,2],
+    "Spartanburg|SC":[34.9496,-81.9321,9],"Spokane|WA":[47.6597,-117.4291,8],"Springfield|MA":[42.1015,-72.5898,9],"Springfield|MO":[37.2153,-93.2982,2],
+    "St. George|UT":[37.1041,-113.5841,3],"St. Louis|MO":[38.6273,-90.1979,2],"St. Petersburg|FL":[27.7709,-82.6793,9],"Stanford|CA":[37.4241,-122.1661,8],
+    "Starkville|MS":[33.4505,-88.8196,2],"Stateline|NV":[38.9624,-119.9399,8],"Staten Island|NY":[40.5623,-74.1399,9],"Statesboro|GA":[32.4488,-81.7832,9],
+    "Stephenville|TX":[32.2207,-98.2023,2],"Stillwater|OK":[36.1156,-97.0584,2],"Stockton|CA":[37.9577,-121.2908,8],"Stony Brook|NY":[40.9256,-73.1409,9],
+    "Storrs|CT":[41.8084,-72.2495,9],"Sunrise|FL":[26.134,-80.1131,9],"Syracuse|NY":[43.0481,-76.1474,9],"Tallahassee|FL":[30.4383,-84.2807,9],
+    "Tampa|FL":[27.9475,-82.4584,9],"Tempe|AZ":[33.4148,-111.9093,10],"Terre Haute|IN":[39.4667,-87.4139,6],"Thibodaux|LA":[29.7958,-90.8229,2],
+    "Thousand Oaks|CA":[34.1706,-118.8376,8],"Toledo|OH":[41.6639,-83.5552,9],"Toronto|ON":[43.7064,-79.3986,11],"Towson|MD":[39.4015,-76.6019,9],
+    "Trois Rivieres|QC":[46.3432,-72.5432,11],"Troy|AL":[31.8088,-85.9699,2],"Troy|NY":[42.7284,-73.6918,9],"Tucson|AZ":[32.2217,-110.9265,10],
+    "Tulsa|OK":[36.154,-95.9928,2],"Tuscaloosa|AL":[33.2098,-87.5692,2],"USAF Academy|CO":[38.9983,-104.8613,3],"Uncasville|CT":[41.4345,-72.1098,9],
+    "University Park|PA":[40.8076,-77.86,9],"Valparaiso|IN":[41.4731,-87.0611,2],"Vancouver|BC":[49.2497,-123.1193,12],
+    "Vermillion|SD":[42.7794,-96.9292,2],"Villanova|PA":[40.0376,-75.3423,9],"Waco|TX":[31.5493,-97.1467,2],"Waltham|MA":[42.3765,-71.2356,9],
+    "Washington|DC":[38.8951,-77.0364,9],"West Haven|CT":[41.2707,-72.9471,9],"West Lafayette|IN":[40.4259,-86.9081,6],
+    "West Long Branch|NJ":[40.2904,-74.0176,9],"West Point|NY":[41.3915,-73.956,9],"Westwego|LA":[29.906,-90.1423,2],
+    "White Sulphur Springs|WV":[37.7965,-80.2976,9],"Wichita|KS":[37.6922,-97.3375,2],"Williamsburg|VA":[37.2707,-76.7075,9],
+    "Wilmington|NC":[34.2356,-77.946,9],"Winnipeg|MB":[49.8844,-97.147,13],"Winston-Salem|NC":[36.0999,-80.2442,9],"Worcester|MA":[42.2626,-71.8023,9],
+    "Youngstown|OH":[41.0998,-80.6495,9],"Ypsilanti|MI":[42.2411,-83.613,4],
+  };
+  const US_STATE_CODES = {"Alabama": "AL", "Alaska": "AK", "Arizona": "AZ", "Arkansas": "AR", "California": "CA", "Colorado": "CO", "Connecticut": "CT", "Delaware": "DE", "District of Columbia": "DC", "Florida": "FL", "Georgia": "GA", "Hawaii": "HI", "Idaho": "ID", "Illinois": "IL", "Indiana": "IN", "Iowa": "IA", "Kansas": "KS", "Kentucky": "KY", "Louisiana": "LA", "Maine": "ME", "Maryland": "MD", "Massachusetts": "MA", "Michigan": "MI", "Minnesota": "MN", "Mississippi": "MS", "Missouri": "MO", "Montana": "MT", "Nebraska": "NE", "Nevada": "NV", "New Hampshire": "NH", "New Jersey": "NJ", "New Mexico": "NM", "New York": "NY", "North Carolina": "NC", "North Dakota": "ND", "Ohio": "OH", "Oklahoma": "OK", "Oregon": "OR", "Pennsylvania": "PA", "Rhode Island": "RI", "South Carolina": "SC", "South Dakota": "SD", "Tennessee": "TN", "Texas": "TX", "Utah": "UT", "Vermont": "VT", "Virginia": "VA", "Washington": "WA", "West Virginia": "WV", "Wisconsin": "WI", "Wyoming": "WY"};
+  const VENUE_BY_CITY = {};   // fallback when ESPN leaves the state blank
+  Object.keys(VENUE_LOCATIONS).forEach(k => { const c = k.split('|')[0]; if(!VENUE_BY_CITY[c]) VENUE_BY_CITY[c] = k; });
+
+  // ESPN venue address -> { city, coords:[lat,lng], tz } or null if unknown.
+  // Handles its quirks: MLS sends "Austin, Texas" with no state, some Canadian
+  // venues use "PQ" for Quebec, and a few say "New York City".
+  function venueLocation(address){
+    if(!address || !address.city) return null;
+    let city = address.city.trim(), state = (address.state||'').trim();
+    if(!state && city.includes(', ')){
+      const i = city.lastIndexOf(', ');
+      state = US_STATE_CODES[city.slice(i+2)] || '';
+      city = city.slice(0, i);
+    }
+    if(city === 'New York City') city = 'New York';
+    if(state === 'PQ') state = 'QC';
+    const key = state ? `${city}|${state}` : VENUE_BY_CITY[city];
+    const v = key && VENUE_LOCATIONS[key];
+    if(v) return { city, coords:[v[0], v[1]], tz: VENUE_TZS[v[2]] };
+    if(CITY_COORDS[city] && (!state || VENUE_BY_CITY[city] === `${city}|${state}`))
+      return { city, coords: CITY_COORDS[city], tz: CITY_TZ[city] || 'America/New_York' };
+    return null;
+  }
+
   const LOCAL_MI = 30;      // counts as "in that city"
   const HARD_CAP_MI = 400;  // furthest we'll ever fetch/store, regardless of slider
   const AVG_MPH = 42;       // rough driving-speed estimate for the "~X away" label
@@ -1032,39 +1169,20 @@ const db = getFirestore(fbApp);
   // ---------------- fetching ----------------
   function ymd(iso){ return iso.replaceAll('-',''); }
 
-  // ESPN's public feed is unofficial and picky:
-  //  - date ranges that cross New Year (e.g. Dec 30 – Jan 8) fail, so ranges are
-  //    always cut at Dec 31 / Jan 1, and into chunks of at most a week;
-  //  - it gets flaky under many simultaneous requests, so only a few run at once,
-  //    each with a short timeout and one retry on the other ESPN host;
-  //  - if a chunk still fails, it's retried one day at a time, and whatever days
-  //    DO load are kept rather than throwing the whole stop away.
-  const ESPN_HOSTS = ['https://site.api.espn.com', 'https://site.web.api.espn.com'];
-  const MAX_CONCURRENT = 4;
+  // ESPN's public scoreboard feed is unofficial. It currently rejects date
+  // ranges ("dates=20261230-20270108" -> HTTP 400) but answers single days
+  // fine, so we ask for one day at a time. Requests are cached per league+day,
+  // only a few run at once, each has a timeout and one retry, and whichever
+  // days load are kept even if others fail.
+  const ESPN_BASE = 'https://site.api.espn.com/apis/site/v2/sports';
+  const MAX_CONCURRENT = 6;
   const REQUEST_TIMEOUT_MS = 10000;
-  const MAX_CHUNK_DAYS = 7;
-  const espnCache = new Map();   // league|from|to -> Promise<{events, failed, offline}>
+  const espnCache = new Map();   // league|day -> Promise<events[]>
 
   function sleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
   function isoToDate(iso){ const [y,m,d] = iso.split('-').map(Number); return new Date(Date.UTC(y,m-1,d)); }
   function dateToIso(dt){ return dt.toISOString().slice(0,10); }
-  function daysBetween(a,b){ return Math.round((isoToDate(b)-isoToDate(a))/86400000); }
   function addDays(iso,n){ const dt = isoToDate(iso); dt.setUTCDate(dt.getUTCDate()+n); return dateToIso(dt); }
-
-  // [from,to] -> [[from,to],...] chunks of <= MAX_CHUNK_DAYS that never cross a year
-  function chunkRange(from, to){
-    const out = [];
-    let start = from;
-    while(start <= to){
-      let end = addDays(start, MAX_CHUNK_DAYS-1);
-      const yearEnd = start.slice(0,4) + '-12-31';
-      if(end > yearEnd) end = yearEnd;
-      if(end > to) end = to;
-      out.push([start, end]);
-      start = addDays(end, 1);
-    }
-    return out;
-  }
 
   let activeRequests = 0;
   const requestQueue = [];
@@ -1075,15 +1193,15 @@ const db = getFirestore(fbApp);
     finally{ activeRequests--; const next = requestQueue.shift(); if(next) next(); }
   }
 
-  async function fetchJsonWithRetry(pathAndQuery){
+  async function fetchJsonWithRetry(url){
     let lastErr, gotResponse = false;
-    for(let attempt=0; attempt<ESPN_HOSTS.length; attempt++){
+    for(let attempt=0; attempt<2; attempt++){
       try{
         return await withSlot(async ()=>{
           const ctrl = new AbortController();
           const timer = setTimeout(()=>ctrl.abort(), REQUEST_TIMEOUT_MS);
           try{
-            const res = await fetch(ESPN_HOSTS[attempt] + pathAndQuery, { signal: ctrl.signal });
+            const res = await fetch(url, { signal: ctrl.signal });
             gotResponse = true;
             if(!res.ok) throw new Error('HTTP ' + res.status);
             return await res.json();
@@ -1091,7 +1209,7 @@ const db = getFirestore(fbApp);
         });
       }catch(err){
         lastErr = err;
-        if(attempt < ESPN_HOSTS.length-1) await sleep(400 + Math.random()*300);
+        if(attempt === 0) await sleep(500 + Math.random()*300);
       }
     }
     // offline = never got any HTTP response (no network, or something like an
@@ -1101,39 +1219,29 @@ const db = getFirestore(fbApp);
     throw err;
   }
 
-  function fetchRangeOnce(league, from, to){
-    const range = from===to ? ymd(from) : `${ymd(from)}-${ymd(to)}`;
-    return fetchJsonWithRetry(`/apis/site/v2/sports/${league.path}/scoreboard?dates=${range}&limit=1000${league.extra||''}`)
-      .then(json => json.events || []);
-  }
-
-  async function fetchChunk(league, from, to){
-    try{
-      return { events: await fetchRangeOnce(league, from, to), failed:false, offline:false };
-    }catch(err){
-      if(from===to || err.offline) return { events:[], failed:true, offline:!!err.offline };
-      // fall back to one request per day, keeping whichever days succeed
-      const days = [];
-      for(let d=from; d<=to; d=addDays(d,1)) days.push(d);
-      const parts = await Promise.allSettled(days.map(d => fetchRangeOnce(league, d, d)));
-      const events = [];
-      let failed = false;
-      parts.forEach(r => { if(r.status==='fulfilled') events.push(...r.value); else failed = true; });
-      return { events, failed, offline:false };
-    }
-  }
-
-  function fetchLeagueEvents(league, from, to){
-    const key = `${league.id}|${from}|${to}`;
+  function fetchLeagueDay(league, day){
+    const key = `${league.id}|${day}`;
     if(espnCache.has(key)) return espnCache.get(key);
-    const p = Promise.all(chunkRange(from, to).map(([a,b]) => fetchChunk(league, a, b)))
-      .then(results => ({
-        events: results.flatMap(r => r.events),
-        failed: results.some(r => r.failed),
-        offline: results.length>0 && results.every(r => r.offline),
-      }));
+    const p = fetchJsonWithRetry(`${ESPN_BASE}/${league.path}/scoreboard?dates=${ymd(day)}&limit=1000${league.extra||''}`)
+      .then(json => json.events || []);
     espnCache.set(key, p);
     return p;
+  }
+
+  // ESPN's "day" is the US Eastern calendar day, so a late game on the West
+  // Coast can sit under the next day. Ask for one extra day either side; the
+  // venue-local date filter below throws away anything outside the stop.
+  async function fetchLeagueEvents(league, from, to){
+    const days = [];
+    for(let d=addDays(from,-1); d<=addDays(to,1); d=addDays(d,1)) days.push(d);
+    const results = await Promise.allSettled(days.map(d => fetchLeagueDay(league, d)));
+    const events = [];
+    let failed = false, offline = true;
+    results.forEach(r => {
+      if(r.status==='fulfilled'){ events.push(...r.value); offline = false; }
+      else { failed = true; if(!r.reason.offline) offline = false; }
+    });
+    return { events, failed, offline: failed && offline };
   }
 
   async function fetchLeagueForOption(league, stop, opt){
@@ -1150,15 +1258,16 @@ const db = getFirestore(fbApp);
       const comp = ev.competitions && ev.competitions[0];
       if(!comp) return;
       const venue = comp.venue || {};
-      const vcity = venue.address && venue.address.city;
-      if(!vcity || !CITY_COORDS[vcity]) return;
-      const dist = haversine(CITY_COORDS[stop.city], CITY_COORDS[vcity]);
+      const loc = venueLocation(venue.address);
+      if(!loc) return;
+      const vcity = loc.city;
+      const dist = haversine(CITY_COORDS[stop.city], loc.coords);
       if(dist > HARD_CAP_MI) return;
       const competitors = comp.competitors || [];
       const home = competitors.find(c=>c.homeAway==='home');
       const away = competitors.find(c=>c.homeAway==='away');
       if(!home || !away) return;
-      const tz = CITY_TZ[vcity] || CITY_TZ[stop.city] || 'America/New_York';
+      const tz = loc.tz;
       // ESPN stores games without a confirmed start time as midnight Eastern
       // (e.g. 05:00Z), which would show as 11pm the PREVIOUS day in Texas. Pin
       // those to midday local time on the right date and label the time TBA.
