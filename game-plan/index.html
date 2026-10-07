@@ -791,7 +791,7 @@ const db = getFirestore(fbApp);
   const CITY_COORDS = {
     "Los Angeles":[34.0522,-118.2437], "Inglewood":[33.9562,-118.3390], "Anaheim":[33.8353,-117.9145],
     "Carson":[33.8317,-118.2820], "Elysian Park":[34.0739,-118.2400],
-    "New York":[40.7128,-74.0060], "Brooklyn":[40.6782,-73.9442], "East Rutherford":[40.8135,-74.0744],
+    "New York":[40.7549,-73.9840], "Brooklyn":[40.6782,-73.9442], "East Rutherford":[40.8135,-74.0744],
     "Elmont":[40.7096,-73.6624], "Newark":[40.7357,-74.1724], "Uniondale":[40.7230,-73.5890],
     "Dallas":[32.7767,-96.7970], "Arlington":[32.7357,-97.1081], "Frisco":[33.1507,-96.8236],
     "Fort Worth":[32.7555,-97.3308],
@@ -1003,7 +1003,19 @@ const db = getFirestore(fbApp);
   const LOCAL_MI = 30;      // counts as "in that city"
   const HARD_CAP_MI = 400;  // furthest we'll ever fetch/store, regardless of slider
   const AVG_MPH = 42;       // rough driving-speed estimate for the "~X away" label
-  let maxDriveMi = 160;     // user-adjustable "worth the drive" radius
+  let maxDriveMi = 160;     // default "worth the drive" radius for each stop
+  // Stops where the default should be tighter. New York is centred on Midtown
+  // Manhattan, so 30 mi covers MSG, Barclays, Yankee Stadium, UBS Arena,
+  // Prudential Center and MetLife but not upstate NY, Philly or Connecticut.
+  const DEFAULT_DRIVE_BY_CITY = { "New York": 30 };
+  // Each stop can have its own slider value (stop.maxDriveMi); otherwise the
+  // city default above, otherwise the general default.
+  function driveLimitFor(stopId){
+    const stop = stops.find(s=>s.id===stopId);
+    if(stop && typeof stop.maxDriveMi === 'number') return stop.maxDriveMi;
+    if(stop && DEFAULT_DRIVE_BY_CITY[stop.city] != null) return DEFAULT_DRIVE_BY_CITY[stop.city];
+    return maxDriveMi;
+  }
 
   const STORAGE_KEY = 'gameplan_selected_v2'; // v2: stores full game snapshots, not just ids
 
@@ -1128,7 +1140,9 @@ const db = getFirestore(fbApp);
     });
 
     list.querySelectorAll('.s-city').forEach(el=>el.addEventListener('change', e=>{
-      findStop(e.target.dataset.stop).city = e.target.value;
+      const changed = findStop(e.target.dataset.stop);
+      changed.city = e.target.value;
+      delete changed.maxDriveMi;   // new city -> back to that city's default radius
       scheduleWrite();
     }));
     list.querySelectorAll('.stop-remove').forEach(el=>el.addEventListener('click', e=>{
@@ -1587,7 +1601,7 @@ const db = getFirestore(fbApp);
   function categoryFor(g){
     if(g.category === 'manual') return 'manual';
     if(g.distance <= LOCAL_MI) return 'local';
-    if(g.distance <= maxDriveMi) return 'nearby';
+    if(g.distance <= driveLimitFor(g.stopId)) return 'nearby';
     return 'toofar';
   }
   function applyDriveCategories(list){
@@ -1652,8 +1666,8 @@ const db = getFirestore(fbApp);
         <h2 style="font-size:13px;"><span style="color:var(--red)">●</span> Worth the drive</h2>
         <div class="drive-control">
           <label for="maxDriveRange">Willing to drive up to</label>
-          <input type="range" id="maxDriveRange" min="10" max="${HARD_CAP_MI}" step="10" value="${maxDriveMi}">
-          <span class="mono" id="maxDriveLabel">${esc(fmtDriveLabel(maxDriveMi))}</span>
+          <input type="range" id="maxDriveRange" min="10" max="${HARD_CAP_MI}" step="10" value="${driveLimitFor(stop.id)}">
+          <span class="mono" id="maxDriveLabel">${esc(fmtDriveLabel(driveLimitFor(stop.id)))}</span>
         </div>
       </div>
       ${agendaHtml(nearby)}
@@ -1661,8 +1675,8 @@ const db = getFirestore(fbApp);
 
     wirePanelInteractivity(panel);
     panel.querySelector('#maxDriveRange').addEventListener('input', (e)=>{
-      maxDriveMi = parseInt(e.target.value, 10);
-      panel.querySelector('#maxDriveLabel').textContent = fmtDriveLabel(maxDriveMi);
+      stop.maxDriveMi = parseInt(e.target.value, 10);
+      panel.querySelector('#maxDriveLabel').textContent = fmtDriveLabel(stop.maxDriveMi);
       // re-render fully on release-ish cadence via rAF so dragging stays smooth
       clearTimeout(panel.__driveTimer);
       panel.__driveTimer = setTimeout(()=>{ renderResults(); scheduleWrite(); }, 150);
