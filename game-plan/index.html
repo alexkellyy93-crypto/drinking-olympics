@@ -1032,19 +1032,39 @@ const db = getFirestore(fbApp);
   // ---------------- fetching ----------------
   function ymd(iso){ return iso.replaceAll('-',''); }
 
-  // ESPN's public feed is unofficial and gets flaky when hit with lots of
-  // requests at once (one per league × stop × date option). So: dedupe identical
-  // requests, only run a few at a time, retry with backoff across two ESPN
-  // hosts, and if a long date range still fails, split it in half and try again.
+  // ESPN's public feed is unofficial and picky:
+  //  - date ranges that cross New Year (e.g. Dec 30 – Jan 8) fail, so ranges are
+  //    always cut at Dec 31 / Jan 1, and into chunks of at most a week;
+  //  - it gets flaky under many simultaneous requests, so only a few run at once,
+  //    each with a short timeout and one retry on the other ESPN host;
+  //  - if a chunk still fails, it's retried one day at a time, and whatever days
+  //    DO load are kept rather than throwing the whole stop away.
   const ESPN_HOSTS = ['https://site.api.espn.com', 'https://site.web.api.espn.com'];
-  const MAX_CONCURRENT = 3;
-  const espnCache = new Map();   // league|from|to -> Promise<events[]>
+  const MAX_CONCURRENT = 4;
+  const REQUEST_TIMEOUT_MS = 10000;
+  const MAX_CHUNK_DAYS = 7;
+  const espnCache = new Map();   // league|from|to -> Promise<{events, failed, offline}>
 
   function sleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
   function isoToDate(iso){ const [y,m,d] = iso.split('-').map(Number); return new Date(Date.UTC(y,m-1,d)); }
   function dateToIso(dt){ return dt.toISOString().slice(0,10); }
   function daysBetween(a,b){ return Math.round((isoToDate(b)-isoToDate(a))/86400000); }
   function addDays(iso,n){ const dt = isoToDate(iso); dt.setUTCDate(dt.getUTCDate()+n); return dateToIso(dt); }
+
+  // [from,to] -> [[from,to],...] chunks of <= MAX_CHUNK_DAYS that never cross a year
+  function chunkRange(from, to){
+    const out = [];
+    let start = from;
+    while(start <= to){
+      let end = addDays(start, MAX_CHUNK_DAYS-1);
+      const yearEnd = start.slice(0,4) + '-12-31';
+      if(end > yearEnd) end = yearEnd;
+      if(end > to) end = to;
+      out.push([start, end]);
+      start = addDays(end, 1);
+    }
+    return out;
+  }
 
   let activeRequests = 0;
   const requestQueue = [];
@@ -1057,14 +1077,13 @@ const db = getFirestore(fbApp);
 
   async function fetchJsonWithRetry(pathAndQuery){
     let lastErr, gotResponse = false;
-    for(let attempt=0; attempt<3; attempt++){
-      const host = ESPN_HOSTS[attempt % ESPN_HOSTS.length];
+    for(let attempt=0; attempt<ESPN_HOSTS.length; attempt++){
       try{
         return await withSlot(async ()=>{
           const ctrl = new AbortController();
-          const timer = setTimeout(()=>ctrl.abort(), 15000);
+          const timer = setTimeout(()=>ctrl.abort(), REQUEST_TIMEOUT_MS);
           try{
-            const res = await fetch(host + pathAndQuery, { signal: ctrl.signal });
+            const res = await fetch(ESPN_HOSTS[attempt] + pathAndQuery, { signal: ctrl.signal });
             gotResponse = true;
             if(!res.ok) throw new Error('HTTP ' + res.status);
             return await res.json();
@@ -1072,7 +1091,7 @@ const db = getFirestore(fbApp);
         });
       }catch(err){
         lastErr = err;
-        if(attempt < 2) await sleep(700 * Math.pow(2, attempt) + Math.random()*300);
+        if(attempt < ESPN_HOSTS.length-1) await sleep(400 + Math.random()*300);
       }
     }
     // offline = never got any HTTP response (no network, or something like an
@@ -1082,42 +1101,49 @@ const db = getFirestore(fbApp);
     throw err;
   }
 
-  function fetchLeagueEvents(league, from, to, depth=0){
+  function fetchRangeOnce(league, from, to){
+    const range = from===to ? ymd(from) : `${ymd(from)}-${ymd(to)}`;
+    return fetchJsonWithRetry(`/apis/site/v2/sports/${league.path}/scoreboard?dates=${range}&limit=1000${league.extra||''}`)
+      .then(json => json.events || []);
+  }
+
+  async function fetchChunk(league, from, to){
+    try{
+      return { events: await fetchRangeOnce(league, from, to), failed:false, offline:false };
+    }catch(err){
+      if(from===to || err.offline) return { events:[], failed:true, offline:!!err.offline };
+      // fall back to one request per day, keeping whichever days succeed
+      const days = [];
+      for(let d=from; d<=to; d=addDays(d,1)) days.push(d);
+      const parts = await Promise.allSettled(days.map(d => fetchRangeOnce(league, d, d)));
+      const events = [];
+      let failed = false;
+      parts.forEach(r => { if(r.status==='fulfilled') events.push(...r.value); else failed = true; });
+      return { events, failed, offline:false };
+    }
+  }
+
+  function fetchLeagueEvents(league, from, to){
     const key = `${league.id}|${from}|${to}`;
     if(espnCache.has(key)) return espnCache.get(key);
-    const range = from===to ? ymd(from) : `${ymd(from)}-${ymd(to)}`;
-    const path = `/apis/site/v2/sports/${league.path}/scoreboard?dates=${range}&limit=1000${league.extra||''}`;
-    const p = fetchJsonWithRetry(path)
-      .then(json => json.events || [])
-      .catch(async err => {
-        const span = daysBetween(from, to);
-        // no response at all (offline / blocked) — splitting won't help
-        if(span < 1 || depth >= 2 || err.offline) throw err;
-        const mid = addDays(from, Math.floor(span/2));
-        const [a, b] = await Promise.all([
-          fetchLeagueEvents(league, from, mid, depth+1),
-          fetchLeagueEvents(league, addDays(mid,1), to, depth+1),
-        ]);
-        return a.concat(b);
-      });
+    const p = Promise.all(chunkRange(from, to).map(([a,b]) => fetchChunk(league, a, b)))
+      .then(results => ({
+        events: results.flatMap(r => r.events),
+        failed: results.some(r => r.failed),
+        offline: results.length>0 && results.every(r => r.offline),
+      }));
     espnCache.set(key, p);
-    p.catch(()=>espnCache.delete(key));   // don't cache failures
     return p;
   }
 
   async function fetchLeagueForOption(league, stop, opt){
-    if(!opt.arrive || !opt.depart) return [];
+    if(!opt.arrive || !opt.depart) return { games:[] };
     let from = opt.arrive, to = opt.depart;
     if(from > to) [from, to] = [to, from];   // dates entered backwards
-    let rawEvents;
-    try{
-      rawEvents = await fetchLeagueEvents(league, from, to);
-    }catch(err){
-      console.warn('fetch failed', league.id, from, to, err);
-      return { error:true, league:league.id, offline: !!err.offline };
-    }
+    const res = await fetchLeagueEvents(league, from, to);
+    if(res.failed) console.warn('some ESPN requests failed', league.id, from, to);
     const seen = new Set();
-    const json = { events: rawEvents.filter(ev => !seen.has(ev.id) && seen.add(ev.id)) };
+    const json = { events: res.events.filter(ev => !seen.has(ev.id) && seen.add(ev.id)) };
     const events = json.events || [];
     const out = [];
     events.forEach(ev=>{
@@ -1132,16 +1158,30 @@ const db = getFirestore(fbApp);
       const home = competitors.find(c=>c.homeAway==='home');
       const away = competitors.find(c=>c.homeAway==='away');
       if(!home || !away) return;
+      const tz = CITY_TZ[vcity] || CITY_TZ[stop.city] || 'America/New_York';
+      // ESPN stores games without a confirmed start time as midnight Eastern
+      // (e.g. 05:00Z), which would show as 11pm the PREVIOUS day in Texas. Pin
+      // those to midday local time on the right date and label the time TBA.
+      const timeTbd = comp.timeValid === false || ev.timeValid === false;
+      let date = ev.date;
+      if(timeTbd){
+        const etDay = dayKeyTz(ev.date, 'America/New_York');
+        date = new Date(localWallClockToUtcMs(etDay, '12:00', tz)).toISOString();
+      }
+      // drop anything ESPN returned outside this stop's dates (local to the venue)
+      const localDay = dayKeyTz(date, tz);
+      if(localDay < from || localDay > to) return;
       out.push({
         id: league.id+'_'+ev.id,
         league: league.id,
         leagueLabel: league.label,
-        date: ev.date,
+        date,
+        timeTbd,
         home: home.team.shortDisplayName || home.team.displayName,
         away: away.team.shortDisplayName || away.team.displayName,
         venueName: venue.fullName || '',
         venueCity: vcity,
-        tz: CITY_TZ[vcity] || CITY_TZ[stop.city] || 'America/New_York',
+        tz,
         distance: dist,
         // category is NOT fixed here — it's recomputed live against the
         // current maxDriveMi setting each render, via categoryFor()
@@ -1150,7 +1190,7 @@ const db = getFirestore(fbApp);
         optionId: opt.id,
       });
     });
-    return out;
+    return { games: out, failed: res.failed, offline: res.offline, league: league.id };
   }
 
   async function findGames(){
@@ -1175,22 +1215,31 @@ const db = getFirestore(fbApp);
     let networkBlocked = false;
     let total = 0;
 
+    const jobs = [];
     for(const stop of stops){
       matches[stop.id] = {};
       for(const opt of stop.options){
-        if(!opt.arrive || !opt.depart){ matches[stop.id][opt.id] = []; continue; }
-        const results = await Promise.all(enabledLeagues.map(lg => fetchLeagueForOption(lg, stop, opt)));
-        let list = [];
-        results.forEach(r=>{
-          if(r && r.error){ errors.push(r.league); if(r.offline) networkBlocked = true; return; }
-          list = list.concat(r);
-        });
-        list.sort((a,b)=> new Date(a.date) - new Date(b.date));
-        matches[stop.id][opt.id] = list;
-        total += list.length;
+        matches[stop.id][opt.id] = [];
         if(!activeOptionByStop[stop.id]) activeOptionByStop[stop.id] = opt.id;
+        if(!opt.arrive || !opt.depart) continue;
+        enabledLeagues.forEach(lg => jobs.push({ stop, opt, lg }));
       }
     }
+    let done = 0;
+    label.textContent = `Searching… 0/${jobs.length}`;
+    const results = await Promise.all(jobs.map(j =>
+      fetchLeagueForOption(j.lg, j.stop, j.opt).then(r => {
+        label.textContent = `Searching… ${++done}/${jobs.length}`;
+        return { ...j, r };
+      })
+    ));
+    results.forEach(({ stop, opt, r }) => {
+      if(r.failed){ errors.push(r.league); if(r.offline) networkBlocked = true; }
+      matches[stop.id][opt.id].push(...r.games);
+      total += r.games.length;
+    });
+    Object.values(matches).forEach(byOpt => Object.values(byOpt).forEach(list =>
+      list.sort((a,b)=> new Date(a.date) - new Date(b.date))));
 
     btn.disabled=false; btn.classList.remove('loading'); label.textContent='Find games';
 
@@ -1200,7 +1249,7 @@ const db = getFirestore(fbApp);
       const hint = networkBlocked
         ? ' If this keeps happening, an ad/tracker blocker or privacy setting may be blocking espn.com — try allowing it for this site.'
         : ' Try again in a moment.';
-      statusLine.textContent = `Couldn't load ${failed}${total ? ` (showing the ${total} game${total===1?'':'s'} that did load)` : ''}.` + hint;
+      statusLine.textContent = `Some ${failed} dates didn't load${total ? ` — showing the ${total} game${total===1?'':'s'} that did` : ''}.` + hint;
     } else if(total===0){
       statusLine.textContent = 'No games found in this window — try widening dates or adding leagues.';
     } else {
@@ -1303,7 +1352,7 @@ const db = getFirestore(fbApp);
         ${opts.showCity ? `<div class="ticket-city">📍 ${esc(g.cityLabel)}</div>` : ''}
         <div class="ticket-teams">${esc(g.away)} @ ${esc(g.home)}</div>
         <div class="ticket-meta">
-          <span class="mono">${fmtTime(g.date, g.tz)}</span>
+          <span class="mono">${g.timeTbd ? 'Time TBA' : fmtTime(g.date, g.tz)}</span>
           <span>${esc(g.venueName)}</span>
           ${meta}
         </div>
