@@ -1359,7 +1359,8 @@ const db = getFirestore(fbApp);
     results.forEach(({ stop, opt, r }) => {
       if(r.failed){ errors.push(r.league); if(r.offline) networkBlocked = true; }
       matches[stop.id][opt.id].push(...r.games);
-      total += r.games.length;
+      // only games IN the stop's city count — "worth the drive" ones don't
+      total += r.games.filter(g => g.distance <= LOCAL_MI).length;
     });
     Object.values(matches).forEach(byOpt => Object.values(byOpt).forEach(list =>
       list.sort((a,b)=> new Date(a.date) - new Date(b.date))));
@@ -1372,11 +1373,11 @@ const db = getFirestore(fbApp);
       const hint = networkBlocked
         ? ' If this keeps happening, an ad/tracker blocker or privacy setting may be blocking espn.com — try allowing it for this site.'
         : ' Try again in a moment.';
-      statusLine.textContent = `Some ${failed} dates didn't load${total ? ` — showing the ${total} game${total===1?'':'s'} that did` : ''}.` + hint;
+      statusLine.textContent = `Some ${failed} dates didn't load${total ? ` — found ${total} game${total===1?'':'s'} in your cities from the rest` : ''}.` + hint;
     } else if(total===0){
-      statusLine.textContent = 'No games found in this window — try widening dates or adding leagues.';
+      statusLine.textContent = 'No games in your cities for these dates — check "Worth the drive" on each tab, widen dates or add leagues.';
     } else {
-      statusLine.textContent = `Found ${total} game${total===1?'':'s'} across your trip.`;
+      statusLine.textContent = `Found ${total} game${total===1?'':'s'} in your cities across the trip.`;
     }
 
     renderResults();
@@ -1573,7 +1574,8 @@ const db = getFirestore(fbApp);
 
       const tab = document.createElement('div');
       tab.className = 'tab' + (stop.id===activeTab ? ' active':'');
-      tab.innerHTML = `${esc(stop.city)} <span class="count">${games.length}</span>`;
+      const inCity = games.filter(g => g.distance <= LOCAL_MI).length;   // nearby/drive games aren't counted
+      tab.innerHTML = `${esc(stop.city)} <span class="count">${inCity}</span>`;
       tab.addEventListener('click', ()=>{ activeTab=stop.id; renderResults(); });
       tabsEl.appendChild(tab);
     });
@@ -1642,7 +1644,7 @@ const db = getFirestore(fbApp);
         return `<button class="compare-card ${active?'active':''}" data-stop="${stop.id}" data-opt="${o.id}">
           <div class="cc-label">Option ${letter}</div>
           <div class="cc-dates mono">${esc(fmtRangeShort(o.arrive, o.depart))}</div>
-          <div class="cc-count">${localCount+nearCount} <span>game${(localCount+nearCount)===1?'':'s'}</span></div>
+          <div class="cc-count">${localCount} <span>game${localCount===1?'':'s'} in city</span></div>
           <div class="cc-split">${localCount} in city · ${nearCount} nearby</div>
         </button>`;
       }).join('') + `</div>`;
