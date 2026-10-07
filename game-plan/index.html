@@ -896,7 +896,7 @@ const db = getFirestore(fbApp);
   }
   function fmtTime(iso, tz){
     const d=new Date(iso);
-    return d.toLocaleTimeString('en-US',{hour:'numeric', minute:'2-digit', timeZone: tz});
+    return d.toLocaleTimeString('en-US',{hour:'numeric', minute:'2-digit', timeZone: tz, timeZoneName:'short'});
   }
   // Calendar-day key (YYYY-MM-DD) as it falls in the given timezone — NOT the raw
   // UTC date slice, since a late-night UTC game can land on a different local day.
